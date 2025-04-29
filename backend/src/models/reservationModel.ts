@@ -1,0 +1,117 @@
+import { DataTypes, Model } from "sequelize";
+import sequelize from "../db/connection";
+import User from "./usersModel";
+import Flight from "./flightModel";
+import Seat from "./seatModel";
+
+// Define Reservation model interface
+interface ReservationAttributes {
+  ReservationID?: number; // Optional for creation
+  UserID: number;
+  FlightID: number;
+  SeatID: number;
+  BookingTime?: Date;
+}
+
+// Define Reservation model class
+class Reservation
+  extends Model<ReservationAttributes>
+  implements ReservationAttributes
+{
+  public ReservationID!: number;
+  public UserID!: number;
+  public FlightID!: number;
+  public SeatID!: number;
+  public BookingTime!: Date;
+
+  // Timestamps
+  public readonly createdAt!: Date;
+  public readonly updatedAt!: Date;
+}
+
+// Initialize Reservation model
+Reservation.init(
+  {
+    ReservationID: {
+      type: DataTypes.INTEGER,
+      autoIncrement: true,
+      primaryKey: true,
+    },
+    UserID: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: User,
+        key: "UserID",
+      },
+    },
+    FlightID: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: Flight,
+        key: "FlightID",
+      },
+    },
+    SeatID: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: Seat,
+        key: "SeatID",
+      },
+      unique: true, // Each seat can only be reserved once
+    },
+    BookingTime: {
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
+    },
+  },
+  {
+    sequelize,
+    modelName: "Reservation",
+    tableName: "Reservations",
+    timestamps: true,
+    indexes: [
+      {
+        name: "idx_reservation_user",
+        fields: ["UserID"],
+      },
+      {
+        name: "idx_reservation_flight",
+        fields: ["FlightID"],
+      },
+      {
+        name: "idx_reservation_seat",
+        fields: ["SeatID"],
+        unique: true,
+      },
+    ],
+    hooks: {
+      beforeCreate: async (reservation: Reservation) => {
+        // Check that the seat being reserved is for the same flight as the reservation
+        const seat = await Seat.findByPk(reservation.SeatID);
+        if (!seat || seat.FlightID !== reservation.FlightID) {
+          throw new Error(
+            "The selected seat must belong to the specified flight"
+          );
+        }
+
+        // Mark the seat as booked
+        await Seat.update(
+          { IsBooked: true },
+          { where: { SeatID: reservation.SeatID } }
+        );
+      },
+      afterDestroy: async (reservation: Reservation) => {
+        // Free up the seat when reservation is cancelled
+        await Seat.update(
+          { IsBooked: false },
+          { where: { SeatID: reservation.SeatID } }
+        );
+      },
+    },
+  }
+);
+
+export default Reservation;
