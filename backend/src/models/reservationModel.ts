@@ -1,8 +1,8 @@
 import { DataTypes, Model } from "sequelize";
-import sequelize from "../db/connection";
-import User from "./usersModel";
-import Flight from "./flightModel";
-import Seat from "./seatModel";
+import sequelize from "../db/connection.js";
+import User from "./usersModel.js";
+import Flight from "./flightModel.js";
+import Seat from "./seatModel.js";
 
 // Define Reservation model interface
 interface ReservationAttributes {
@@ -11,6 +11,9 @@ interface ReservationAttributes {
   FlightID: number;
   SeatID: number;
   BookingTime?: Date;
+  user?: User; // User relationship
+  flight?: Flight; // Flight relationship
+  seat?: Seat; // Seat relationship
 }
 
 // Define Reservation model class
@@ -23,6 +26,9 @@ class Reservation
   public FlightID!: number;
   public SeatID!: number;
   public BookingTime!: Date;
+  public user?: User;
+  public flight?: Flight;
+  public seat?: Seat;
 
   // Timestamps
   public readonly createdAt!: Date;

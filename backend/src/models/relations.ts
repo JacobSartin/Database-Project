@@ -1,9 +1,9 @@
-import User from "./usersModel";
-import Airport from "./airportsModel";
-import Aircraft from "./aircraftModel";
-import Flight from "./flightModel";
-import Seat from "./seatModel";
-import Reservation from "./reservationModel";
+import User from "./usersModel.js";
+import Airport from "./airportsModel.js";
+import Aircraft from "./aircraftModel.js";
+import Flight from "./flightModel.js";
+import Seat from "./seatModel.js";
+import Reservation from "./reservationModel.js";
 
 // Define relationships between models
 

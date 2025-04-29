@@ -1,11 +1,13 @@
 import { DataTypes, Model } from "sequelize";
-import sequelize from "../db/connection";
+import sequelize from "../db/connection.js";
+import Flight from "./flightModel.js";
 
 // Define Aircraft model interface
 interface AircraftAttributes {
   AircraftID?: number; // Optional for creation
   Model: string;
   TotalSeats: number;
+  flights?: Flight[]; // Add relationship with Flight
 }
 
 // Define Aircraft model class
@@ -13,6 +15,7 @@ class Aircraft extends Model<AircraftAttributes> implements AircraftAttributes {
   public AircraftID!: number;
   public Model!: string;
   public TotalSeats!: number;
+  public flights?: Flight[]; // Add relationship with Flight
 
   // Timestamps
   public readonly createdAt!: Date;

@@ -21,10 +21,17 @@ const sequelize = new Sequelize(
     host: process.env.DB_HOST,
     port: parseInt(process.env.DB_PORT ?? "5432"),
     dialect: "postgres",
+    logging: process.env.NODE_ENV === "development" ? console.log : false,
+    pool: {
+      max: 10,
+      min: 0,
+      acquire: 30000,
+      idle: 10000,
+    },
   }
 );
 
-const testConnection = async (): Promise<void> => {
+export const testConnection = async (): Promise<void> => {
   try {
     await sequelize.authenticate();
     console.log("Connection has been established successfully.");
@@ -33,9 +40,5 @@ const testConnection = async (): Promise<void> => {
     process.exit(1);
   }
 };
-
-(async () => {
-  await testConnection();
-})();
 
 export default sequelize;

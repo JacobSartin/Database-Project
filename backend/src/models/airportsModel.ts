@@ -1,5 +1,6 @@
 import { DataTypes, Model } from "sequelize";
-import sequelize from "../db/connection";
+import sequelize from "../db/connection.js";
+import Flight from "./flightModel.js";
 
 // Define Airport model interface
 interface AirportAttributes {
@@ -8,6 +9,8 @@ interface AirportAttributes {
   Name: string;
   City: string;
   Country: string;
+  departingFlights?: Flight[]; // Add relationship for flights departing from this airport
+  arrivingFlights?: Flight[]; // Add relationship for flights arriving at this airport
 }
 
 // Define Airport model class
@@ -17,6 +20,8 @@ class Airport extends Model<AirportAttributes> implements AirportAttributes {
   public Name!: string;
   public City!: string;
   public Country!: string;
+  public departingFlights?: Flight[]; // Add relationship for flights departing from this airport
+  public arrivingFlights?: Flight[]; // Add relationship for flights arriving at this airport
 
   // Timestamps
   public readonly createdAt!: Date;

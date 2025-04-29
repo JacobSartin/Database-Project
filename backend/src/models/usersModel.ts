@@ -1,6 +1,7 @@
 import { DataTypes, Model, Optional } from "sequelize";
-import sequelize from "../db/connection";
+import sequelize from "../db/connection.js";
 import argon2 from "@node-rs/argon2";
+import Reservation from "./reservationModel.js";
 
 // Define User attributes interface
 interface UserAttributes {
@@ -8,7 +9,8 @@ interface UserAttributes {
   Username: string;
   PasswordHash: string;
   Email: string | null;
-  ADMIN: boolean;
+  Admin: boolean;
+  reservations?: Reservation[]; // Add relationship with reservations
 }
 
 // Define optional attributes for creation
@@ -23,7 +25,8 @@ class User
   public Username!: string;
   public PasswordHash!: string;
   public Email!: string | null;
-  public ADMIN!: boolean;
+  public Admin!: boolean;
+  public reservations?: Reservation[]; // Add relationship with reservations
 
   // Timestamps
   public readonly createdAt!: Date;
@@ -69,7 +72,7 @@ User.init(
         isEmail: { msg: "Please enter a valid email address" },
       },
     },
-    ADMIN: {
+    Admin: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: false,

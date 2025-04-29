@@ -15,7 +15,7 @@ CREATE TABLE Users (
     Username VARCHAR(50) NOT NULL UNIQUE,
     PasswordHash VARCHAR(255) NOT NULL,
     Email VARCHAR(100),
-    ADMIN BOOLEAN DEFAULT false
+    Admin BOOLEAN DEFAULT false
 );
 
 -- Airports Table
@@ -78,7 +78,7 @@ CREATE INDEX idx_reservation_flight ON Reservations(FlightID);
 -- Insert sample data
 
 -- Sample Users (PasswordHash is 'password' for all users, properly hashed with Argon2)
-INSERT INTO Users (Username, PasswordHash, Email, ADMIN) VALUES
+INSERT INTO Users (Username, PasswordHash, Email, Admin) VALUES
 ('admin', '$argon2id$v=19$m=19456,t=2,p=1$dQ4LdsBJ8BfVtYDXeFlusQ$U47hkgO0OAOzRdZBAq9+TqIFSchcvyXJoplapcYSGD4', 'admin@flyair.com', TRUE),
 ('john_doe', '$argon2id$v=19$m=19456,t=2,p=1$84B2+REaP5PeK7P4wxjNOA$/e+YIlrMXU7k6zISs95i8BywA3uYq1E5DfAE5Xkmba0', 'john.doe@example.com', FALSE),
 ('jane_smith', '$argon2id$v=19$m=19456,t=2,p=1$AgdPAnCU+EYh2f/XGl8BCA$jqcvkHtfee8MvBsC1muLIPos/KYB665MXvSv3dRCjeQ', 'jane.smith@example.com', FALSE),

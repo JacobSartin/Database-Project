@@ -1,7 +1,9 @@
 import { DataTypes, Model } from "sequelize";
-import sequelize from "../db/connection";
-import Aircraft from "./aircraftModel";
-import Airport from "./airportsModel";
+import sequelize from "../db/connection.js";
+import Aircraft from "./aircraftModel.js";
+import Airport from "./airportsModel.js";
+import Seat from "./seatModel.js";
+import Reservation from "./reservationModel.js";
 
 // Define Flight model interface
 interface FlightAttributes {
@@ -11,6 +13,11 @@ interface FlightAttributes {
   DestinationAirportID: number;
   DepartureTime: Date;
   ArrivalTime: Date;
+  aircraft?: Aircraft; // Aircraft relationship
+  originAirport?: Airport; // Origin airport relationship
+  destinationAirport?: Airport; // Destination airport relationship
+  seats?: Seat[]; // Seats on this flight
+  reservations?: Reservation[]; // Reservations for this flight
 }
 
 // Define Flight model class
@@ -21,6 +28,11 @@ class Flight extends Model<FlightAttributes> implements FlightAttributes {
   public DestinationAirportID!: number;
   public DepartureTime!: Date;
   public ArrivalTime!: Date;
+  public aircraft?: Aircraft;
+  public originAirport?: Airport;
+  public destinationAirport?: Airport;
+  public seats?: Seat[];
+  public reservations?: Reservation[];
 
   // Timestamps
   public readonly createdAt!: Date;
