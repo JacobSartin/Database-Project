@@ -5,6 +5,7 @@ import Seat from "../models/seatModel.js";
 import Airport from "../models/airportsModel.js";
 import Aircraft from "../models/aircraftModel.js";
 import Reservation from "../models/reservationModel.js";
+import { FlightIdParams, SearchFlightQuery } from "../types/requestTypes.js";
 
 /**
  * Get all flights
@@ -22,7 +23,7 @@ export function getFlights(req: Request, res: Response): void {
     .then((flights) => {
       res.json(flights);
     })
-    .catch((error) => {
+    .catch((error: unknown) => {
       console.error("Error fetching flights:", error);
       res.status(500).json({
         message: "Error fetching flights",
@@ -36,7 +37,10 @@ export function getFlights(req: Request, res: Response): void {
  * @param req Request with flight ID in params
  * @param res Response object
  */
-export function getFlightById(req: Request, res: Response): void {
+export function getFlightById(
+  req: Request<FlightIdParams>,
+  res: Response
+): void {
   const flightId = parseInt(req.params.id);
   if (isNaN(flightId)) {
     res.status(400).json({ message: "Invalid flight ID" });
@@ -54,16 +58,22 @@ export function getFlightById(req: Request, res: Response): void {
     .then((flight) => {
       if (!flight) {
         res.status(404).json({ message: "Flight not found" });
-        return;
+        return Promise.reject(new Error("Flight not found")); // Break the chain
       }
       res.json(flight);
     })
-    .catch((error) => {
-      console.error(`Error fetching flight with ID ${flightId}:`, error);
-      res.status(500).json({
-        message: "Error fetching flight",
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
+    .catch((error: unknown) => {
+      // Only send error response if one hasn't been sent already
+      if (!res.headersSent) {
+        console.error(
+          `Error fetching flight with ID ${flightId.toString()}:`,
+          error
+        );
+        res.status(500).json({
+          message: "Error fetching flight",
+          error: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
     });
 }
 
@@ -73,7 +83,8 @@ export function getFlightById(req: Request, res: Response): void {
  * @param res Response object
  */
 export function searchFlights(req: Request, res: Response): void {
-  const { origin, destination, departureDate, returnDate } = req.query;
+  const { origin, destination, departureDate, returnDate } =
+    req.query as SearchFlightQuery;
 
   if (!origin || !destination || !departureDate) {
     res.status(400).json({ message: "Missing required search parameters" });
@@ -81,33 +92,35 @@ export function searchFlights(req: Request, res: Response): void {
   }
 
   // Convert departureDate string to Date objects for start and end of day
-  const departureStart = new Date(departureDate as string);
+  const departureStart = new Date(departureDate);
   departureStart.setHours(0, 0, 0, 0);
 
-  const departureEnd = new Date(departureDate as string);
+  const departureEnd = new Date(departureDate);
   departureEnd.setHours(23, 59, 59, 999);
 
-  // First, find airports by code
-  const originAirportPromise = Airport.findOne({
-    where: {
-      [Op.or]: [
-        { Code: (origin as string).toUpperCase() },
-        { City: { [Op.like]: `%${origin}%` } },
-      ],
-    },
-  });
-
-  const destinationAirportPromise = Airport.findOne({
-    where: {
-      [Op.or]: [
-        { Code: (destination as string).toUpperCase() },
-        { City: { [Op.like]: `%${destination}%` } },
-      ],
-    },
-  });
-
-  Promise.all([originAirportPromise, destinationAirportPromise])
+  // Find airports first
+  Promise.all([
+    // Find origin airport
+    Airport.findOne({
+      where: {
+        [Op.or]: [
+          { Code: origin.toUpperCase() },
+          { City: { [Op.like]: `%${origin}%` } },
+        ],
+      },
+    }),
+    // Find destination airport
+    Airport.findOne({
+      where: {
+        [Op.or]: [
+          { Code: destination.toUpperCase() },
+          { City: { [Op.like]: `%${destination}%` } },
+        ],
+      },
+    }),
+  ])
     .then(([originAirport, destinationAirport]) => {
+      // Validate airports
       if (!originAirport) {
         res.status(404).json({
           message: `Origin airport '${origin}' not found. Please check airport code or city name.`,
@@ -134,47 +147,17 @@ export function searchFlights(req: Request, res: Response): void {
         );
       }
 
-      // Find outbound flights
-      const outboundFlightsPromise = Flight.findAll({
-        where: {
-          OriginAirportID: originAirport.getDataValue("AirportID"),
-          DestinationAirportID: destinationAirport.getDataValue("AirportID"),
-          DepartureTime: {
-            [Op.between]: [departureStart, departureEnd] as [Date, Date],
-          },
-        },
-        include: [
-          { model: Airport, as: "originAirport" },
-          { model: Airport, as: "destinationAirport" },
-          { model: Aircraft, as: "aircraft" },
-        ],
-        order: [["DepartureTime", "ASC"]],
-      });
+      // Search promises
+      const searchPromises = [];
 
-      let returnFlightsPromise: Promise<Flight[]> = Promise.resolve([]);
-
-      // If returnDate is provided, search for return flights
-      if (returnDate) {
-        const returnStart = new Date(returnDate as string);
-        returnStart.setHours(0, 0, 0, 0);
-
-        const returnEnd = new Date(returnDate as string);
-        returnEnd.setHours(23, 59, 59, 999);
-
-        // Validate that return date is after departure date
-        if (returnStart < departureEnd) {
-          res.status(400).json({
-            message: "Return date must be after departure date.",
-          });
-          return Promise.reject(new Error("Invalid return date"));
-        }
-
-        returnFlightsPromise = Flight.findAll({
+      // Outbound flights
+      searchPromises.push(
+        Flight.findAll({
           where: {
-            OriginAirportID: destinationAirport.getDataValue("AirportID"),
-            DestinationAirportID: originAirport.getDataValue("AirportID"),
+            OriginAirportID: originAirport.getDataValue("AirportID"),
+            DestinationAirportID: destinationAirport.getDataValue("AirportID"),
             DepartureTime: {
-              [Op.between]: [returnStart, returnEnd] as [Date, Date],
+              [Op.between]: [departureStart, departureEnd] as [Date, Date],
             },
           },
           include: [
@@ -183,26 +166,64 @@ export function searchFlights(req: Request, res: Response): void {
             { model: Aircraft, as: "aircraft" },
           ],
           order: [["DepartureTime", "ASC"]],
-        });
+        })
+      );
+
+      // Return flights if requested
+      if (returnDate) {
+        const returnStart = new Date(returnDate);
+        returnStart.setHours(0, 0, 0, 0);
+
+        const returnEnd = new Date(returnDate);
+        returnEnd.setHours(23, 59, 59, 999);
+
+        // Validate return date
+        if (returnStart < departureEnd) {
+          res.status(400).json({
+            message: "Return date must be after departure date.",
+          });
+          return Promise.reject(new Error("Invalid return date"));
+        }
+
+        searchPromises.push(
+          Flight.findAll({
+            where: {
+              OriginAirportID: destinationAirport.getDataValue("AirportID"),
+              DestinationAirportID: originAirport.getDataValue("AirportID"),
+              DepartureTime: {
+                [Op.between]: [returnStart, returnEnd] as [Date, Date],
+              },
+            },
+            include: [
+              { model: Airport, as: "originAirport" },
+              { model: Airport, as: "destinationAirport" },
+              { model: Aircraft, as: "aircraft" },
+            ],
+            order: [["DepartureTime", "ASC"]],
+          })
+        );
+      } else {
+        // Add empty array for consistent response structure
+        searchPromises.push(Promise.resolve([]));
       }
 
-      return Promise.all([outboundFlightsPromise, returnFlightsPromise]);
+      return Promise.all(searchPromises);
     })
     .then(([outboundFlights, returnFlights]) => {
-      if (!outboundFlights) return; // If execution reached here, response was already sent
-
+      // Format response
       res.json({
         outbound: outboundFlights,
-        return: returnFlights.length > 0 ? returnFlights : undefined,
+        return:
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+          returnFlights && returnFlights.length > 0 ? returnFlights : undefined,
       });
     })
-    .catch((error) => {
+    .catch((error: unknown) => {
       // Only send error response if one hasn't been sent already
       if (!res.headersSent) {
         console.error("Error searching flights:", error);
         res.status(500).json({
-          message:
-            error instanceof Error ? error.message : "Error searching flights",
+          message: "Error searching flights",
           error: error instanceof Error ? error.message : "Unknown error",
         });
       }
@@ -214,7 +235,10 @@ export function searchFlights(req: Request, res: Response): void {
  * @param req Request with flight ID in params
  * @param res Response object
  */
-export function getAvailableSeats(req: Request, res: Response): void {
+export function getAvailableSeats(
+  req: Request<FlightIdParams>,
+  res: Response
+): void {
   const flightId = parseInt(req.params.id);
   if (isNaN(flightId)) {
     res.status(400).json({ message: "Invalid flight ID" });
@@ -233,13 +257,13 @@ export function getAvailableSeats(req: Request, res: Response): void {
     .then((allSeats) => {
       // Filter out seats that have reservations
       const availableSeats = allSeats.filter((seat) => {
-        return seat.get("reservation") === null;
+        return !seat.get("reservation");
       });
       res.json(availableSeats);
     })
-    .catch((error) => {
+    .catch((error: unknown) => {
       console.error(
-        `Error fetching available seats for flight ${flightId}:`,
+        `Error fetching available seats for flight ${flightId.toString()}:`,
         error
       );
       res.status(500).json({

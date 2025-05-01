@@ -15,17 +15,17 @@ interface AirportAttributes {
 
 // Define Airport model class
 class Airport extends Model<AirportAttributes> implements AirportAttributes {
-  public AirportID!: number;
-  public Code!: string;
-  public Name!: string;
-  public City!: string;
-  public Country!: string;
-  public departingFlights?: Flight[]; // Add relationship for flights departing from this airport
-  public arrivingFlights?: Flight[]; // Add relationship for flights arriving at this airport
+  declare AirportID: number;
+  declare Code: string;
+  declare Name: string;
+  declare City: string;
+  declare Country: string;
+  declare departingFlights?: Flight[]; // Add relationship for flights departing from this airport
+  declare arrivingFlights?: Flight[]; // Add relationship for flights arriving at this airport
 
   // Timestamps
-  public readonly createdAt!: Date;
-  public readonly updatedAt!: Date;
+  declare createdAt: Date;
+  declare updatedAt: Date;
 }
 
 // Initialize Airport model

@@ -14,15 +14,15 @@ interface SeatAttributes {
 
 // Define Seat model class
 class Seat extends Model<SeatAttributes> implements SeatAttributes {
-  public SeatID!: number;
-  public FlightID!: number;
-  public SeatNumber!: string;
-  public IsBooked!: boolean;
-  public reservation?: Reservation; // Add the reservation association
+  declare SeatID: number;
+  declare FlightID: number;
+  declare SeatNumber: string;
+  declare IsBooked: boolean;
+  declare reservation?: Reservation; // Add the reservation association
 
   // Timestamps
-  public readonly createdAt!: Date;
-  public readonly updatedAt!: Date;
+  declare createdAt: Date;
+  declare updatedAt: Date;
 }
 
 // Initialize Seat model

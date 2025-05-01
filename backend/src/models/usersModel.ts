@@ -14,27 +14,37 @@ interface UserAttributes {
 }
 
 // Define optional attributes for creation
-interface UserCreationAttributes extends Optional<UserAttributes, "UserID"> {}
+type UserCreationAttributes = Optional<UserAttributes, "UserID">;
 
 // Define User model class
 class User
   extends Model<UserAttributes, UserCreationAttributes>
   implements UserAttributes
 {
-  public UserID!: number;
-  public Username!: string;
-  public PasswordHash!: string;
-  public Email!: string | null;
-  public Admin!: boolean;
-  public reservations?: Reservation[]; // Add relationship with reservations
+  // Using declare instead of public to avoid shadowing Sequelize's getters/setters
+  declare UserID: number;
+  declare Username: string;
+  declare PasswordHash: string;
+  declare Email: string | null;
+  declare Admin: boolean;
+  declare reservations?: Reservation[]; // Add relationship with reservations
 
   // Timestamps
-  public readonly createdAt!: Date;
-  public readonly updatedAt!: Date;
+  declare createdAt: Date;
+  declare updatedAt: Date;
 
-  // Instance method to compare passwords
+  // Instance method to compare passwords - ensure proper type handling
   public async comparePassword(candidatePassword: string): Promise<boolean> {
-    return argon2.verify(this.PasswordHash, candidatePassword);
+    try {
+      // Ensure the password hash is a string before verification
+      if (typeof this.PasswordHash !== "string") {
+        throw new Error("Invalid password hash format");
+      }
+      return await argon2.verify(this.PasswordHash, candidatePassword);
+    } catch (error) {
+      console.error("Password verification error:", error);
+      return false;
+    }
   }
 }
 

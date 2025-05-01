@@ -12,14 +12,14 @@ interface AircraftAttributes {
 
 // Define Aircraft model class
 class Aircraft extends Model<AircraftAttributes> implements AircraftAttributes {
-  public AircraftID!: number;
-  public Model!: string;
-  public TotalSeats!: number;
-  public flights?: Flight[]; // Add relationship with Flight
+  declare AircraftID: number;
+  declare Model: string;
+  declare TotalSeats: number;
+  declare flights?: Flight[]; // Add relationship with Flight
 
   // Timestamps
-  public readonly createdAt!: Date;
-  public readonly updatedAt!: Date;
+  declare createdAt: Date;
+  declare updatedAt: Date;
 }
 
 // Initialize Aircraft model

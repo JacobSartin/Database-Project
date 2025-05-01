@@ -22,21 +22,21 @@ interface FlightAttributes {
 
 // Define Flight model class
 class Flight extends Model<FlightAttributes> implements FlightAttributes {
-  public FlightID!: number;
-  public AircraftID!: number;
-  public OriginAirportID!: number;
-  public DestinationAirportID!: number;
-  public DepartureTime!: Date;
-  public ArrivalTime!: Date;
-  public aircraft?: Aircraft;
-  public originAirport?: Airport;
-  public destinationAirport?: Airport;
-  public seats?: Seat[];
-  public reservations?: Reservation[];
+  declare FlightID: number;
+  declare AircraftID: number;
+  declare OriginAirportID: number;
+  declare DestinationAirportID: number;
+  declare DepartureTime: Date;
+  declare ArrivalTime: Date;
+  declare aircraft?: Aircraft;
+  declare originAirport?: Airport;
+  declare destinationAirport?: Airport;
+  declare seats?: Seat[];
+  declare reservations?: Reservation[];
 
   // Timestamps
-  public readonly createdAt!: Date;
-  public readonly updatedAt!: Date;
+  declare createdAt: Date;
+  declare updatedAt: Date;
 }
 
 // Initialize Flight model

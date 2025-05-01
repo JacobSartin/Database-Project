@@ -1,12 +1,17 @@
 import { Request, Response } from "express";
 import User from "../models/usersModel.js";
 import Reservation from "../models/reservationModel.js";
+import {
+  UserIdParams,
+  RegisterRequestBody,
+  LoginRequestBody,
+} from "../types/requestTypes.js";
 
 /**
  * Register a new user
  */
-export function register(req: Request, res: Response) {
-  const { username, password, email } = req.body;
+export function register(req: Request, res: Response): void {
+  const { username, password, email } = req.body as RegisterRequestBody;
 
   // Check if username already exists
   User.findOne({
@@ -39,7 +44,7 @@ export function register(req: Request, res: Response) {
         user: userData,
       });
     })
-    .catch((error) => {
+    .catch((error: unknown) => {
       // Only send error response if one hasn't been sent already
       if (!res.headersSent) {
         console.error("Registration error:", error);
@@ -54,8 +59,8 @@ export function register(req: Request, res: Response) {
 /**
  * Login a user
  */
-export function login(req: Request, res: Response) {
-  const { username, password } = req.body;
+export function login(req: Request, res: Response): void {
+  const { username, password } = req.body as LoginRequestBody;
   let userRecord: User;
 
   // Find user by username
@@ -69,6 +74,13 @@ export function login(req: Request, res: Response) {
       }
 
       userRecord = user;
+
+      // Ensure password is a string
+      if (typeof password !== "string") {
+        res.status(400).json({ message: "Invalid password format" });
+        return Promise.reject(new Error("Invalid password format"));
+      }
+
       // Verify password
       return user.comparePassword(password);
     })
@@ -93,7 +105,7 @@ export function login(req: Request, res: Response) {
         // token: generatedToken
       });
     })
-    .catch((error) => {
+    .catch((error: unknown) => {
       // Only send error response if one hasn't been sent already
       if (!res.headersSent) {
         console.error("Login error:", error);
@@ -108,7 +120,10 @@ export function login(req: Request, res: Response) {
 /**
  * Get user reservations
  */
-export function getReservations(req: Request, res: Response): void {
+export function getReservations(
+  req: Request<UserIdParams>,
+  res: Response
+): void {
   const userId = parseInt(req.params.id);
 
   if (isNaN(userId)) {
@@ -121,11 +136,11 @@ export function getReservations(req: Request, res: Response): void {
     .then((user) => {
       if (!user) {
         res.status(404).json({ message: "User not found" });
-        Promise.reject(new Error("User not found")); // Break the chain
+        return Promise.reject(new Error("User not found")); // Break the chain
       }
 
       // Find reservations for the user
-      Reservation.findAll({
+      return Reservation.findAll({
         where: { UserID: userId },
         include: [
           {
@@ -142,7 +157,7 @@ export function getReservations(req: Request, res: Response): void {
     .then((reservations) => {
       res.json(reservations);
     })
-    .catch((error) => {
+    .catch((error: unknown) => {
       // Only send error response if one hasn't been sent already
       if (!res.headersSent) {
         console.error("Error fetching user reservations:", error);

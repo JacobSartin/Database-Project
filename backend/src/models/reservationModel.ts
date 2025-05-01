@@ -21,18 +21,18 @@ class Reservation
   extends Model<ReservationAttributes>
   implements ReservationAttributes
 {
-  public ReservationID!: number;
-  public UserID!: number;
-  public FlightID!: number;
-  public SeatID!: number;
-  public BookingTime!: Date;
-  public user?: User;
-  public flight?: Flight;
-  public seat?: Seat;
+  declare ReservationID: number;
+  declare UserID: number;
+  declare FlightID: number;
+  declare SeatID: number;
+  declare BookingTime: Date;
+  declare user?: User;
+  declare flight?: Flight;
+  declare seat?: Seat;
 
   // Timestamps
-  public readonly createdAt!: Date;
-  public readonly updatedAt!: Date;
+  declare createdAt: Date;
+  declare updatedAt: Date;
 }
 
 // Initialize Reservation model
