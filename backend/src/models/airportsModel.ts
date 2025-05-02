@@ -3,7 +3,7 @@ import sequelize from "../db/connection.js";
 import Flight from "./flightModel.js";
 
 // Define Airport model interface
-interface AirportAttributes {
+export interface AirportAttributes {
   AirportID?: number; // Optional for creation
   Code: string;
   Name: string;

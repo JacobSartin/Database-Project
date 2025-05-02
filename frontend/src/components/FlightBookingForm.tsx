@@ -7,16 +7,21 @@ import FlightList from "./FlightList";
 import SeatMap from "./SeatMap";
 import BookingConfirmation from "./BookingConfirmation";
 import AuthModal from "./AuthModal";
-import { AirportOption, Flight, Seat } from "../types/flightTypes";
+import {
+  FlightAttributes,
+  SeatAttributes,
+} from "../../../backend/src/types/modelDTOs";
+import { AirportOption } from "../types/shared";
 import { useAuth } from "../context/AuthContext";
 import {
   searchFlights as apiSearchFlights,
   fetchAvailableSeats as apiFetchSeats,
   createReservation as apiCreateReservation,
 } from "../services/api";
+import { BookingResponse } from "../types/flightTypes";
 
 const FlightBookingForm: React.FC = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth(); // Destructure user from useAuth
   const [step, setStep] = useState<
     "search" | "flights" | "seats" | "confirmation"
   >("search");
@@ -29,10 +34,14 @@ const FlightBookingForm: React.FC = () => {
   const [returnDate, setReturnDate] = useState<Date | null>(null);
   const [passengerCount, setPassengerCount] = useState<number>(1);
 
-  const [availableFlights, setAvailableFlights] = useState<Flight[]>([]);
-  const [selectedFlight, setSelectedFlight] = useState<Flight | null>(null);
-  const [availableSeats, setAvailableSeats] = useState<Seat[]>([]);
-  const [selectedSeats, setSelectedSeats] = useState<Seat[]>([]);
+  const [availableFlights, setAvailableFlights] = useState<FlightAttributes[]>(
+    []
+  );
+  const [selectedFlight, setSelectedFlight] = useState<FlightAttributes | null>(
+    null
+  );
+  const [availableSeats, setAvailableSeats] = useState<SeatAttributes[]>([]);
+  const [selectedSeats, setSelectedSeats] = useState<SeatAttributes[]>([]);
   const [seatMapLoading, setSeatMapLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -92,8 +101,12 @@ const FlightBookingForm: React.FC = () => {
       searchDate.setHours(12, 0, 0, 0);
 
       // Use a method that preserves the date regardless of timezone
-      // Format: YYYY-MM-DD
-      const formattedDate = searchDate.toISOString().split("T")[0];
+      // Format: YYYY-MM-DD (local time, not UTC)
+      const formattedDate = [
+        searchDate.getFullYear(),
+        String(searchDate.getMonth() + 1).padStart(2, "0"),
+        String(searchDate.getDate()).padStart(2, "0"),
+      ].join("-");
 
       console.log("Original departure date:", depDate);
       console.log("Formatted date for search:", formattedDate);
@@ -102,9 +115,12 @@ const FlightBookingForm: React.FC = () => {
       let formattedReturnDate: string | undefined;
       if (returnDate) {
         const returnSearchDate = new Date(returnDate);
-        // Apply the same standardization to return date
         returnSearchDate.setHours(12, 0, 0, 0);
-        formattedReturnDate = returnSearchDate.toISOString().split("T")[0];
+        formattedReturnDate = [
+          returnSearchDate.getFullYear(),
+          String(returnSearchDate.getMonth() + 1).padStart(2, "0"),
+          String(returnSearchDate.getDate()).padStart(2, "0"),
+        ].join("-");
         console.log("Return date for search:", formattedReturnDate);
       }
 
@@ -134,10 +150,10 @@ const FlightBookingForm: React.FC = () => {
   };
 
   // Handle flight selection
-  const handleFlightSelect = (flight: Flight) => {
+  const handleFlightSelect = (flight: FlightAttributes) => {
     setSelectedFlight(flight);
     setSeatMapLoading(true);
-    fetchAvailableSeats(flight.flightId);
+    fetchAvailableSeats(flight.FlightID!);
     setStep("seats");
   };
 
@@ -150,7 +166,7 @@ const FlightBookingForm: React.FC = () => {
       // Use the actual API call
       const seats = await apiFetchSeats(flightId);
 
-      setAvailableSeats(seats);
+      setAvailableSeats(seats as SeatAttributes[]);
     } catch (error) {
       console.error("Error fetching seats:", error);
       setError("Failed to load seat map. Please try again.");
@@ -160,18 +176,18 @@ const FlightBookingForm: React.FC = () => {
   };
 
   // Updated to handle multiple seat selections
-  const handleSeatSelect = (seat: Seat) => {
-    if (seat.isBooked) return;
+  const handleSeatSelect = (seat: SeatAttributes) => {
+    if (seat.IsBooked) return;
 
     setSelectedSeats((prevSelectedSeats) => {
       // Check if this seat is already selected
       const alreadySelected = prevSelectedSeats.some(
-        (s) => s.seatId === seat.seatId
+        (s) => s.SeatID === seat.SeatID
       );
 
       if (alreadySelected) {
         // Remove the seat if already selected
-        return prevSelectedSeats.filter((s) => s.seatId !== seat.seatId);
+        return prevSelectedSeats.filter((s) => s.SeatID !== seat.SeatID);
       } else {
         // Add the seat if we haven't reached the passenger count limit
         if (prevSelectedSeats.length < passengerCount) {
@@ -216,20 +232,28 @@ const FlightBookingForm: React.FC = () => {
       setLoading(true);
       setError(null);
 
+      // Ensure user and UserID are available
+      if (!user || !user.UserID) {
+        setError("User information is missing. Please log in again.");
+        setLoading(false);
+        return;
+      }
+
       const bookingPromises = selectedSeats.map((seat) =>
         apiCreateReservation({
-          flightId: selectedFlight.flightId,
-          seatId: seat.seatId,
-          // User ID is now obtained from the JWT token on the server side
+          FlightID: selectedFlight.FlightID!,
+          SeatID: seat.SeatID!,
         })
       );
 
       // Store the reservation responses which contain the reservation IDs
-      const bookingResponses = await Promise.all(bookingPromises);
+      const bookingResponses = (await Promise.all(
+        bookingPromises
+      )) as BookingResponse[];
 
       // Extract reservation IDs to a single string, joined by commas if multiple
       const reservationIds = bookingResponses
-        .map((response) => response.data?.reservationId)
+        .map((response) => response.data?.ReservationID)
         .filter((id) => id !== undefined)
         .join(",");
 

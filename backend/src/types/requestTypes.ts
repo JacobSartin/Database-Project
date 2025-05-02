@@ -22,9 +22,8 @@ export interface LoginRequestBody {
 }
 
 export interface CreateReservationBody {
-  flightId: number;
-  seatId: number;
-  userId: number;
+  FlightID: number;
+  SeatID: number;
 }
 
 // Request query interfaces

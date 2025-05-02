@@ -2,7 +2,9 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
 import { ThemeProvider, createTheme, CssBaseline, Box } from "@mui/material";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import FlightBookingForm from "./components/FlightBookingForm";
+import UserBookings from "./components/UserBookings";
 import TopBar from "./components/TopBar";
 import { AuthProvider } from "./context/AuthContext";
 
@@ -102,31 +104,37 @@ createRoot(document.getElementById("root")!).render(
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <AuthProvider>
-        <Box
-          sx={{
-            minHeight: "100vh",
-            display: "flex",
-            flexDirection: "column",
-            bgcolor: "background.default",
-            width: "100vw",
-            maxWidth: "100%",
-            overflowX: "hidden",
-          }}
-        >
-          <TopBar />
+        <BrowserRouter>
           <Box
             sx={{
+              minHeight: "100vh",
               display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              flexGrow: 1,
-              width: "100%",
-              minHeight: "calc(100vh - 64px)", // Accounting for TopBar height
+              flexDirection: "column",
+              bgcolor: "background.default",
+              width: "100vw",
+              maxWidth: "100%",
+              overflowX: "hidden",
             }}
           >
-            <FlightBookingForm />
+            <TopBar />
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "flex-start",
+                flexGrow: 1,
+                width: "100%",
+                minHeight: "calc(100vh - 64px)", // Accounting for TopBar height
+              }}
+            >
+              <Routes>
+                <Route path="/" element={<FlightBookingForm />} />
+                <Route path="/bookings" element={<UserBookings />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </Box>
           </Box>
-        </Box>
+        </BrowserRouter>
       </AuthProvider>
     </ThemeProvider>
   </StrictMode>

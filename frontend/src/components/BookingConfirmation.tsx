@@ -16,18 +16,22 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import FlightTakeoffIcon from "@mui/icons-material/FlightTakeoff";
 import AirlineSeatReclineNormalIcon from "@mui/icons-material/AirlineSeatReclineNormal";
 import ConfirmationNumberIcon from "@mui/icons-material/ConfirmationNumber";
-import { Flight, Seat, formatDateTime } from "../types/flightTypes";
+import {
+  FlightAttributes,
+  SeatAttributes,
+} from "../../../backend/src/types/modelDTOs";
+import { formatDateTime } from "../types/flightTypes";
 
 type BookingConfirmationProps = {
-  flight: Flight;
-  seats: Seat[]; // Changed from single seat to array
+  flight: FlightAttributes;
+  seats: SeatAttributes[];
   bookingId?: string;
   onBookAnother: () => void;
 };
 
 const BookingConfirmation: React.FC<BookingConfirmationProps> = ({
   flight,
-  seats, // Changed from seat
+  seats,
   bookingId = "TBD",
   onBookAnother,
 }) => {
@@ -123,14 +127,15 @@ const BookingConfirmation: React.FC<BookingConfirmationProps> = ({
               Flight
             </Typography>
             <Typography variant="body1" gutterBottom>
-              {flight.originCode} to {flight.destinationCode}
+              {flight.originAirport?.Code ?? ""} to{" "}
+              {flight.destinationAirport?.Code ?? ""}
             </Typography>
 
             <Typography variant="body2" color="text.secondary">
               Date
             </Typography>
             <Typography variant="body1" gutterBottom>
-              {new Date(flight.departureTime).toLocaleDateString(undefined, {
+              {new Date(flight.DepartureTime).toLocaleDateString(undefined, {
                 weekday: "long",
                 year: "numeric",
                 month: "long",
@@ -142,7 +147,7 @@ const BookingConfirmation: React.FC<BookingConfirmationProps> = ({
               Departure
             </Typography>
             <Typography variant="body1" gutterBottom>
-              {formatDateTime(flight.departureTime)}
+              {formatDateTime(flight.DepartureTime.toLocaleTimeString())}
             </Typography>
           </Grid>
 
@@ -151,21 +156,21 @@ const BookingConfirmation: React.FC<BookingConfirmationProps> = ({
               Flight Number
             </Typography>
             <Typography variant="body1" gutterBottom>
-              FL-{flight.flightId}
+              FL-{flight.FlightID}
             </Typography>
 
             <Typography variant="body2" color="text.secondary">
               Aircraft
             </Typography>
             <Typography variant="body1" gutterBottom>
-              {flight.aircraftModel}
+              {flight.aircraft?.Model || "-"}
             </Typography>
 
             <Typography variant="body2" color="text.secondary">
               Arrival
             </Typography>
             <Typography variant="body1" gutterBottom>
-              {formatDateTime(flight.arrivalTime)}
+              {formatDateTime(flight.ArrivalTime.toLocaleDateString())}
             </Typography>
           </Grid>
         </Grid>
@@ -202,7 +207,7 @@ const BookingConfirmation: React.FC<BookingConfirmationProps> = ({
                 gutterBottom
                 sx={{ fontWeight: "bold" }}
               >
-                {seats[0].seatNumber}
+                {seats[0].SeatNumber}
               </Typography>
             </Grid>
 
@@ -224,12 +229,12 @@ const BookingConfirmation: React.FC<BookingConfirmationProps> = ({
 
             <List>
               {seats.map((seat) => (
-                <ListItem key={seat.seatId}>
+                <ListItem key={seat.SeatID}>
                   <ListItemIcon>
                     <AirlineSeatReclineNormalIcon />
                   </ListItemIcon>
                   <ListItemText
-                    primary={`Seat ${seat.seatNumber}`}
+                    primary={`Seat ${seat.SeatNumber}`}
                     secondary="Economy Class"
                   />
                 </ListItem>

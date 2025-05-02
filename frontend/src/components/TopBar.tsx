@@ -9,8 +9,12 @@ import {
   MenuItem,
   Avatar,
   IconButton,
+  Stack,
 } from "@mui/material";
 import AirplanemodeActiveIcon from "@mui/icons-material/AirplanemodeActive";
+import ConfirmationNumberIcon from "@mui/icons-material/ConfirmationNumber";
+import HomeIcon from "@mui/icons-material/Home";
+import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import AuthModal from "./AuthModal";
 
@@ -20,6 +24,7 @@ interface TopBarProps {
 
 const TopBar: React.FC<TopBarProps> = ({ title = "SkyBooker Airlines" }) => {
   const { user, isAuthenticated, logout } = useAuth();
+  const location = useLocation();
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -42,6 +47,21 @@ const TopBar: React.FC<TopBarProps> = ({ title = "SkyBooker Airlines" }) => {
     handleUserMenuClose();
   };
 
+  // Style for active navigation link
+  const getNavLinkStyle = (path: string) => ({
+    color: "white",
+    fontWeight: location.pathname === path ? "bold" : "normal",
+    textDecoration: "none",
+    display: "flex",
+    alignItems: "center",
+    borderBottom: location.pathname === path ? "2px solid white" : "none",
+    paddingBottom: "3px",
+    transition: "all 0.2s",
+    "&:hover": {
+      opacity: 0.8,
+    },
+  });
+
   return (
     <>
       <AppBar
@@ -56,12 +76,55 @@ const TopBar: React.FC<TopBarProps> = ({ title = "SkyBooker Airlines" }) => {
       >
         <Toolbar>
           <AirplanemodeActiveIcon sx={{ mr: 2 }} />
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+          <Typography
+            variant="h6"
+            component="div"
+            sx={{
+              flexGrow: { xs: 0, md: 1 },
+              mr: { xs: 2, md: 0 },
+            }}
+          >
             {title}
           </Typography>
 
+          {/* Navigation Links */}
+          <Stack
+            direction="row"
+            spacing={3}
+            sx={{
+              display: { xs: "none", md: "flex" },
+              flexGrow: 1,
+            }}
+          >
+            <Box component={Link} to="/" sx={getNavLinkStyle("/")}>
+              <HomeIcon sx={{ mr: 0.5 }} fontSize="small" />
+              Book Flights
+            </Box>
+            <Box
+              component={Link}
+              to="/bookings"
+              sx={getNavLinkStyle("/bookings")}
+            >
+              <ConfirmationNumberIcon sx={{ mr: 0.5 }} fontSize="small" />
+              My Bookings
+            </Box>
+          </Stack>
+
           {isAuthenticated ? (
             <Box sx={{ display: "flex", alignItems: "center" }}>
+              {/* Mobile nav links in user menu */}
+              <Box sx={{ display: { xs: "block", md: "none" } }}>
+                <Button
+                  component={Link}
+                  to="/bookings"
+                  color="inherit"
+                  sx={{ mr: 1 }}
+                  startIcon={<ConfirmationNumberIcon />}
+                >
+                  Bookings
+                </Button>
+              </Box>
+
               <IconButton
                 onClick={handleUserMenuOpen}
                 size="small"
@@ -87,17 +150,50 @@ const TopBar: React.FC<TopBarProps> = ({ title = "SkyBooker Airlines" }) => {
                   vertical: "top",
                   horizontal: "right",
                 }}
+                PaperProps={{
+                  sx: { backgroundColor: "#14161d" },
+                }}
               >
                 <MenuItem disabled>
                   <Typography variant="body2">
                     {user?.FirstName} {user?.LastName}
                   </Typography>
                 </MenuItem>
+                {/* Mobile only menu items */}
+                <Box sx={{ display: { xs: "block", md: "none" } }}>
+                  <MenuItem
+                    component={Link}
+                    to="/"
+                    onClick={handleUserMenuClose}
+                  >
+                    Book Flights
+                  </MenuItem>
+                  <MenuItem
+                    component={Link}
+                    to="/bookings"
+                    onClick={handleUserMenuClose}
+                  >
+                    My Bookings
+                  </MenuItem>
+                </Box>
                 <MenuItem onClick={handleLogout}>Logout</MenuItem>
               </Menu>
             </Box>
           ) : (
             <Box>
+              {/* For mobile, show bookings button when not authenticated too */}
+              <Box sx={{ display: { xs: "block", md: "none" } }}>
+                <Button
+                  component={Link}
+                  to="/bookings"
+                  color="inherit"
+                  sx={{ mr: 1 }}
+                  startIcon={<ConfirmationNumberIcon />}
+                >
+                  Bookings
+                </Button>
+              </Box>
+
               <Button
                 color="inherit"
                 onClick={() => handleOpenAuthModal("login")}

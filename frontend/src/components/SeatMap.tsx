@@ -10,13 +10,17 @@ import {
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import AirlineSeatReclineNormalIcon from "@mui/icons-material/AirlineSeatReclineNormal";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
-import { Flight, Seat, formatDateTime } from "../types/flightTypes";
+import {
+  FlightAttributes,
+  SeatAttributes,
+} from "../../../backend/src/types/modelDTOs";
+import { formatDateTime } from "../types/flightTypes";
 
 type SeatMapProps = {
-  flight: Flight;
-  seats: Seat[];
-  selectedSeats: Seat[]; // Changed from single seat to array
-  onSeatSelect: (seat: Seat) => void;
+  flight: FlightAttributes;
+  seats: SeatAttributes[];
+  selectedSeats: SeatAttributes[];
+  onSeatSelect: (seat: SeatAttributes) => void;
   onBack: () => void;
   onConfirm: () => void;
   loading?: boolean;
@@ -26,7 +30,7 @@ type SeatMapProps = {
 const SeatMap: React.FC<SeatMapProps> = ({
   flight,
   seats,
-  selectedSeats, // Changed from selectedSeat
+  selectedSeats,
   onSeatSelect,
   onBack,
   onConfirm,
@@ -36,14 +40,16 @@ const SeatMap: React.FC<SeatMapProps> = ({
   // Organize seats into a grid structure for display
   // This helps visualize a proper airplane layout
   const organizeSeatsIntoGrid = () => {
-    const seatGrid: { [row: string]: { [col: string]: Seat | null } } = {};
+    const seatGrid: {
+      [row: string]: { [col: string]: SeatAttributes | null };
+    } = {};
     const columns = ["A", "B", "C", "D", "E", "F"];
 
     // Extract all unique row numbers from the seats array
     const uniqueRows = Array.from(
       new Set(
         seats.map((seat) => {
-          const row = seat.seatNumber.match(/^\d+/)?.[0] || "";
+          const row = seat.SeatNumber.match(/^\d+/)?.[0] || "";
           return parseInt(row, 10);
         })
       )
@@ -63,7 +69,7 @@ const SeatMap: React.FC<SeatMapProps> = ({
 
     // Fill in the available seats
     seats.forEach((seat) => {
-      const seatNumber = seat.seatNumber; // Format should be like "1A", "2B", etc.
+      const seatNumber = seat.SeatNumber; // Format should be like "1A", "2B", etc.
       const row = seatNumber.match(/^\d+/)?.[0] || "";
       const col = seatNumber.replace(row, "");
 
@@ -81,8 +87,8 @@ const SeatMap: React.FC<SeatMapProps> = ({
 
   const { seatGrid, rows, columns } = organizeSeatsIntoGrid();
 
-  const handleSeatClick = (seat: Seat | null) => {
-    if (seat && !seat.isBooked) {
+  const handleSeatClick = (seat: SeatAttributes | null) => {
+    if (seat && !seat.IsBooked) {
       onSeatSelect(seat);
     }
   };
@@ -148,11 +154,12 @@ const SeatMap: React.FC<SeatMapProps> = ({
 
       <Box sx={{ mb: 3 }}>
         <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
-          {flight.originCode} to {flight.destinationCode} •{" "}
-          {formatDateTime(flight.departureTime)}
+          {flight.originAirport?.Code ?? ""} to{" "}
+          {flight.destinationAirport?.Code ?? ""} •{" "}
+          {formatDateTime(flight.DepartureTime.toLocaleTimeString())}
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          Aircraft: {flight.aircraftModel}
+          Aircraft: {flight.aircraft?.Model || "-"}
         </Typography>
       </Box>
 
@@ -329,10 +336,10 @@ const SeatMap: React.FC<SeatMapProps> = ({
                         {columns.slice(0, 3).map((col) => {
                           const seat = seatGrid[row][col];
                           const seatExists = seat !== null;
-                          const isBooked = seat?.isBooked || false;
+                          const isBooked = seat?.IsBooked || false;
                           const isSelected =
                             seatExists &&
-                            selectedSeats.some((s) => s.seatId === seat.seatId);
+                            selectedSeats.some((s) => s.SeatID === seat.SeatID);
 
                           return (
                             <Tooltip
@@ -423,10 +430,10 @@ const SeatMap: React.FC<SeatMapProps> = ({
                         {columns.slice(3).map((col) => {
                           const seat = seatGrid[row][col];
                           const seatExists = seat !== null;
-                          const isBooked = seat?.isBooked || false;
+                          const isBooked = seat?.IsBooked || false;
                           const isSelected =
                             seatExists &&
-                            selectedSeats.some((s) => s.seatId === seat.seatId);
+                            selectedSeats.some((s) => s.SeatID === seat.SeatID);
 
                           return (
                             <Tooltip
@@ -550,7 +557,7 @@ const SeatMap: React.FC<SeatMapProps> = ({
           <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
             {selectedSeats.map((seat) => (
               <Box
-                key={seat.seatId}
+                key={seat.SeatID}
                 sx={{
                   display: "flex",
                   alignItems: "center",
@@ -564,7 +571,7 @@ const SeatMap: React.FC<SeatMapProps> = ({
                   fontSize: "0.875rem",
                 }}
               >
-                {seat.seatNumber}
+                {seat.SeatNumber}
               </Box>
             ))}
           </Box>

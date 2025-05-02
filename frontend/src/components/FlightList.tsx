@@ -4,7 +4,6 @@ import {
   Typography,
   Button,
   Paper,
-  Grid,
   Divider,
   Stack,
   Chip,
@@ -14,14 +13,15 @@ import {
 import FlightTakeoffIcon from "@mui/icons-material/FlightTakeoff";
 import FlightLandIcon from "@mui/icons-material/FlightLand";
 import AirplaneTicketIcon from "@mui/icons-material/AirplaneTicket";
-import { Flight, formatDateTime, formatDuration } from "../types/flightTypes";
+import { FlightAttributes } from "../../../backend/src/types/modelDTOs";
+import { formatDateTime, formatDuration } from "../types/flightTypes";
 
 type FlightListProps = {
-  flights: Flight[];
+  flights: FlightAttributes[];
   sourceAirport: string;
   destinationAirport: string;
   departureDate: string;
-  onSelectFlight: (flight: Flight) => void;
+  onSelectFlight: (flight: FlightAttributes) => void;
   onModifySearch: () => void;
   loading?: boolean;
 };
@@ -76,7 +76,7 @@ const FlightList: React.FC<FlightListProps> = ({
       <Box sx={{ mb: 2 }}>
         <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
           {sourceAirport} to {destinationAirport} •{" "}
-          {new Date(departureDate).toLocaleDateString()}
+          {new Date(departureDate).toISOString()}
         </Typography>
       </Box>
 
@@ -108,7 +108,7 @@ const FlightList: React.FC<FlightListProps> = ({
         >
           {flights.map((flight) => (
             <Paper
-              key={flight.flightId}
+              key={flight.FlightID}
               elevation={1}
               sx={{
                 p: { xs: 1.5, sm: 2 },
@@ -121,8 +121,16 @@ const FlightList: React.FC<FlightListProps> = ({
               }}
               onClick={() => onSelectFlight(flight)}
             >
-              <Grid container spacing={1} alignItems="center">
-                <Grid>
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: isMobile ? "column" : "row",
+                  alignItems: isMobile ? "stretch" : "center",
+                  gap: 2,
+                  width: "100%",
+                }}
+              >
+                <Box sx={{ flex: 3 }}>
                   <Box
                     sx={{
                       display: "flex",
@@ -133,14 +141,14 @@ const FlightList: React.FC<FlightListProps> = ({
                     }}
                   >
                     <Chip
-                      label={flight.aircraftModel}
+                      label={flight.aircraft?.Model || "-"}
                       size="small"
                       color="primary"
                       variant="outlined"
                       sx={{ mr: 1 }}
                     />
                     <Typography variant="caption" color="text.secondary">
-                      Flight #{flight.flightId}
+                      Flight #{flight.FlightID}
                     </Typography>
                   </Box>
 
@@ -159,10 +167,14 @@ const FlightList: React.FC<FlightListProps> = ({
                       }}
                     >
                       <Typography variant={isMobile ? "body1" : "h6"}>
-                        {flight.originCode}
+                        {flight.originAirport?.Code ?? ""}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        {formatDateTime(flight.departureTime).split(",")[1]}
+                        {
+                          formatDateTime(
+                            flight.DepartureTime.toISOString()
+                          ).split(",")[1]
+                        }
                       </Typography>
                     </Box>
 
@@ -181,8 +193,8 @@ const FlightList: React.FC<FlightListProps> = ({
                         sx={{ mb: 0.5 }}
                       >
                         {formatDuration(
-                          flight.departureTime,
-                          flight.arrivalTime
+                          flight.DepartureTime.toISOString(),
+                          flight.ArrivalTime.toISOString()
                         )}
                       </Typography>
                       <Box sx={{ position: "relative", mx: 2 }}>
@@ -220,10 +232,14 @@ const FlightList: React.FC<FlightListProps> = ({
                       }}
                     >
                       <Typography variant={isMobile ? "body1" : "h6"}>
-                        {flight.destinationCode}
+                        {flight.destinationAirport?.Code ?? ""}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        {formatDateTime(flight.arrivalTime).split(",")[1]}
+                        {
+                          formatDateTime(
+                            flight.ArrivalTime.toISOString()
+                          ).split(",")[1]
+                        }
                       </Typography>
                     </Box>
                   </Box>
@@ -231,18 +247,22 @@ const FlightList: React.FC<FlightListProps> = ({
                   {!isMobile && (
                     <>
                       <Typography variant="body2" color="text.secondary">
-                        Departure: {formatDateTime(flight.departureTime)}
+                        Departure:{" "}
+                        {formatDateTime(flight.DepartureTime.toISOString())}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        Arrival: {formatDateTime(flight.arrivalTime)}
+                        Arrival:{" "}
+                        {formatDateTime(flight.ArrivalTime.toISOString())}
                       </Typography>
                     </>
                   )}
-                </Grid>
-
-                <Grid
-                  textAlign={isMobile ? "center" : "right"}
-                  sx={{ mt: isMobile ? 1 : 0 }}
+                </Box>
+                <Box
+                  sx={{
+                    flex: 1,
+                    textAlign: isMobile ? "center" : "right",
+                    mt: isMobile ? 1 : 0,
+                  }}
                 >
                   <Button
                     variant="contained"
@@ -257,8 +277,8 @@ const FlightList: React.FC<FlightListProps> = ({
                   >
                     Select Flight
                   </Button>
-                </Grid>
-              </Grid>
+                </Box>
+              </Box>
             </Paper>
           ))}
         </Stack>

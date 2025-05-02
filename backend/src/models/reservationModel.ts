@@ -5,7 +5,7 @@ import Flight from "./flightModel.js";
 import Seat from "./seatModel.js";
 
 // Define Reservation model interface
-interface ReservationAttributes {
+export interface ReservationAttributes {
   ReservationID?: number; // Optional for creation
   UserID: number;
   FlightID: number;
@@ -14,6 +14,9 @@ interface ReservationAttributes {
   user?: User; // User relationship
   flight?: Flight; // Flight relationship
   seat?: Seat; // Seat relationship
+
+  createdAt?: Date; // Optional for creation
+  updatedAt?: Date; // Optional for creation
 }
 
 // Define Reservation model class

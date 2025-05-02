@@ -4,7 +4,7 @@ import Flight from "./flightModel.js";
 import Reservation from "./reservationModel.js";
 
 // Define Seat model interface
-interface SeatAttributes {
+export interface SeatAttributes {
   SeatID?: number; // Optional for creation
   FlightID: number;
   SeatNumber: string;

@@ -281,6 +281,7 @@ export function getReservations(req: AuthRequest, res: Response): void {
             include: [
               { association: "originAirport" },
               { association: "destinationAirport" },
+              { association: "aircraft" },
             ],
           },
           { association: "seat" },
@@ -314,7 +315,7 @@ export function getReservations(req: AuthRequest, res: Response): void {
  */
 export function createReservation(req: AuthRequest, res: Response): void {
   console.log("Reservation request received:", req.body);
-  const { flightId, seatId } = req.body as CreateReservationBody;
+  const { FlightID, SeatID } = req.body as CreateReservationBody;
 
   // Get userId from the authenticated token instead of request body
   if (!req.user) {
@@ -328,7 +329,7 @@ export function createReservation(req: AuthRequest, res: Response): void {
 
   const userId = req.user.id;
 
-  if (!flightId || !seatId) {
+  if (!FlightID || !SeatID) {
     const response: ApiResponse<null> = {
       message: "Missing required fields",
       error: "Flight ID and Seat ID are required",
@@ -341,8 +342,8 @@ export function createReservation(req: AuthRequest, res: Response): void {
   // Check if the seat exists and is available
   Seat.findOne({
     where: {
-      SeatID: seatId,
-      FlightID: flightId,
+      SeatID: SeatID,
+      FlightID: FlightID,
     },
     include: {
       model: Reservation,
@@ -356,7 +357,7 @@ export function createReservation(req: AuthRequest, res: Response): void {
           message: "Seat not found",
           error: "The requested seat does not exist",
         };
-        console.log("Seat not found:", seatId);
+        console.log("Seat not found:", SeatID);
         res.status(404).json(response);
         return Promise.reject(new Error("Seat not found"));
       }
@@ -369,16 +370,16 @@ export function createReservation(req: AuthRequest, res: Response): void {
           message: "Seat already booked",
           error: "The selected seat is already booked",
         };
-        console.log("Seat already booked:", seatId);
+        console.log("Seat already booked:", SeatID);
         res.status(400).json(response);
         return Promise.reject(new Error("Seat already booked"));
       }
 
       // Create reservation
-      console.log("Creating reservation for seat:", seatId);
+      console.log("Creating reservation for seat:", SeatID);
       return Reservation.create({
-        FlightID: flightId,
-        SeatID: seatId,
+        FlightID: FlightID,
+        SeatID: SeatID,
         BookingTime: new Date(),
         UserID: userId,
       });

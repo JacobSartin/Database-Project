@@ -1,347 +1,169 @@
 // API service for backend communication
 import {
-  Flight,
-  Seat,
-  AirportOption,
-  ApiResponse,
-  UserResponse,
-  LoginRequestBody,
-  RegisterRequestBody,
-  CreateReservationBody,
-  SearchFlightQuery as SearchFlightParams,
-  Reservation,
-  Airport,
-} from "../types/shared";
-import {
   formatDateTime,
   formatDuration,
   convertToAirportOption,
 } from "../utils/formatUtils";
 
+import {
+  FlightAttributes,
+  SeatAttributes,
+  ReservationAttributes,
+  UserAttributes,
+  AirportAttributes,
+} from "../../../backend/src/types/modelDTOs";
+
 // Base API URL - should match the backend server address
 const API_BASE_URL = "http://localhost:5000/api";
 
 // Error handling helper
-const handleApiError = (error: unknown): never => {
-  console.error("API Error:", error);
+const handleApiError = (error: unknown) => {
   throw new Error(error instanceof Error ? error.message : "Unknown API error");
 };
 
-// Auth APIs
-export const register = async (
-  userData: RegisterRequestBody
-): Promise<ApiResponse<UserResponse>> => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/users/register`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(userData),
-      credentials: "include", // Include cookies for auth
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(
-        errorData.error || `HTTP error! Status: ${response.status}`
-      );
+const fetchJson = async (url: string, options?: RequestInit) => {
+  const response = await fetch(url, options);
+  if (!response.ok) {
+    let errorData: unknown;
+    try {
+      errorData = await response.json();
+    } catch {
+      /* empty */
     }
-
-    return await response.json();
-  } catch (error) {
-    return handleApiError(error);
-  }
-};
-
-export const login = async (
-  credentials: LoginRequestBody
-): Promise<ApiResponse<UserResponse>> => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/users/login`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(credentials),
-      credentials: "include", // Include cookies for auth
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(
-        errorData.error || `HTTP error! Status: ${response.status}`
-      );
-    }
-
-    return await response.json();
-  } catch (error) {
-    return handleApiError(error);
-  }
-};
-
-export const logout = async (): Promise<ApiResponse<null>> => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/users/logout`, {
-      method: "POST",
-      credentials: "include", // Include cookies for auth
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(
-        errorData.error || `HTTP error! Status: ${response.status}`
-      );
-    }
-
-    return await response.json();
-  } catch (error) {
-    return handleApiError(error);
-  }
-};
-
-export const getCurrentUser = async (): Promise<ApiResponse<UserResponse>> => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/users/profile`, {
-      credentials: "include", // Include cookies for auth
-    });
-
-    if (!response.ok) {
-      // If 401 or 403, token is invalid or expired
-      if (response.status === 401 || response.status === 403) {
-        throw new Error("Authentication token is invalid or expired");
-      }
-
-      const errorData = await response.json();
-      throw new Error(
-        errorData.error || `HTTP error! Status: ${response.status}`
-      );
-    }
-
-    return await response.json();
-  } catch (error) {
-    return handleApiError(error);
-  }
-};
-
-// Airports API
-export const fetchAirports = async (): Promise<AirportOption[]> => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/airports`);
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-
-    const apiResponse: ApiResponse<Airport[]> = await response.json();
-
-    if (!apiResponse.data) {
-      return [];
-    }
-
-    return apiResponse.data.map(convertToAirportOption);
-  } catch (error) {
-    return handleApiError(error);
-  }
-};
-
-// Define interface for the structure returned by search flights API
-interface FlightSearchResponse {
-  outbound: FlightData[];
-  return?: FlightData[];
-}
-
-// Raw flight data structure returned from API
-interface FlightData {
-  FlightID: number;
-  AircraftID: number;
-  OriginAirportID: number;
-  DestinationAirportID: number;
-  DepartureTime: string;
-  ArrivalTime: string;
-  originAirport?: {
-    Code: string;
-    Name: string;
-  };
-  destinationAirport?: {
-    Code: string;
-    Name: string;
-  };
-  aircraft?: {
-    Model: string;
-  };
-}
-
-// Flights API
-export const searchFlights = async (
-  searchParams: SearchFlightParams
-): Promise<Flight[]> => {
-  try {
-    const { origin, destination, departureDate, returnDate } = searchParams;
-    let url = `${API_BASE_URL}/flights/search?origin=${origin}&destination=${destination}&departureDate=${departureDate}`;
-
-    if (returnDate) {
-      url += `&returnDate=${returnDate}`;
-    }
-
-    const response = await fetch(url);
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-
-    const apiResponse: ApiResponse<FlightSearchResponse> =
-      await response.json();
-
-    if (!apiResponse.data || !apiResponse.data.outbound) {
-      return [];
-    }
-
-    // Map the API response to our Flight type
-    return apiResponse.data.outbound.map((flight: FlightData) => ({
-      flightId: flight.FlightID,
-      aircraftId: flight.AircraftID,
-      originAirportId: flight.OriginAirportID,
-      destinationAirportId: flight.DestinationAirportID,
-      departureTime: flight.DepartureTime,
-      arrivalTime: flight.ArrivalTime,
-      originCode: flight.originAirport?.Code ?? "",
-      destinationCode: flight.destinationAirport?.Code ?? "",
-      originName: flight.originAirport?.Name ?? "",
-      destinationName: flight.destinationAirport?.Name ?? "",
-      aircraftModel: flight.aircraft?.Model ?? "",
-    }));
-  } catch (error) {
-    return handleApiError(error);
-  }
-};
-
-// Get flight by ID
-export const getFlightById = async (
-  flightId: number
-): Promise<Flight | null> => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/flights/${flightId}`);
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-
-    const apiResponse: ApiResponse<FlightData> = await response.json();
-
-    if (!apiResponse.data) {
-      return null;
-    }
-
-    const flight = apiResponse.data;
-
-    return {
-      flightId: flight.FlightID,
-      aircraftId: flight.AircraftID,
-      originAirportId: flight.OriginAirportID,
-      destinationAirportId: flight.DestinationAirportID,
-      departureTime: flight.DepartureTime,
-      arrivalTime: flight.ArrivalTime,
-      originCode: flight.originAirport?.Code ?? "",
-      destinationCode: flight.destinationAirport?.Code ?? "",
-      originName: flight.originAirport?.Name ?? "",
-      destinationName: flight.destinationAirport?.Name ?? "",
-      aircraftModel: flight.aircraft?.Model ?? "",
-    };
-  } catch (error) {
-    return handleApiError(error);
-  }
-};
-
-// Raw seat data structure from API
-interface SeatData {
-  SeatID: number;
-  FlightID: number;
-  SeatNumber: string;
-  IsBooked: boolean | number;
-  reservation?: unknown;
-}
-
-// Seats API
-export const fetchAvailableSeats = async (
-  flightId: number
-): Promise<Seat[]> => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/flights/${flightId}/seats`);
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-
-    const apiResponse: ApiResponse<SeatData[]> = await response.json();
-
-    if (!apiResponse.data) {
-      return [];
-    }
-
-    return apiResponse.data.map((seat: SeatData) => ({
-      seatId: seat.SeatID,
-      flightId: seat.FlightID,
-      seatNumber: seat.SeatNumber,
-      isBooked: seat.IsBooked === 1 || seat.IsBooked === true,
-    }));
-  } catch (error) {
-    return handleApiError(error);
-  }
-};
-
-// Reservations API
-export const createReservation = async (
-  reservationData: Omit<CreateReservationBody, "userId">
-): Promise<ApiResponse<Reservation>> => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/reservations`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(reservationData),
-      credentials: "include", // Include cookies for auth
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(
-        errorData.error || `HTTP error! Status: ${response.status}`
-      );
-    }
-
-    return await response.json();
-  } catch (error) {
-    return handleApiError(error);
-  }
-};
-
-// Get user reservations
-export const getUserReservations = async (
-  userId: number
-): Promise<Reservation[]> => {
-  try {
-    const response = await fetch(
-      `${API_BASE_URL}/users/${userId}/reservations`,
-      {
-        credentials: "include", // Include cookies for auth
-      }
+    throw new Error(
+      (errorData as { error?: string })?.error ||
+        `HTTP error! Status: ${response.status}`
     );
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-
-    const apiResponse: ApiResponse<Reservation[]> = await response.json();
-
-    if (!apiResponse.data) {
-      return [];
-    }
-
-    return apiResponse.data;
-  } catch (error) {
-    return handleApiError(error);
   }
+  return response.json() as Promise<unknown>;
+};
+
+// Local API response type for type safety
+interface ApiResponse<T> {
+  data: T;
+  [key: string]: unknown;
+}
+
+// Use imported DTOs for all API response typing and mapping
+interface ApiResponse<T> {
+  message: string;
+  data: T;
+  error?: string;
+}
+
+export const register = (userData: UserAttributes) =>
+  fetchJson(`${API_BASE_URL}/users/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(userData),
+    credentials: "include",
+  }).catch(handleApiError);
+
+export const login = (credentials: { Username: string; Password: string }) =>
+  fetchJson(`${API_BASE_URL}/users/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(credentials),
+    credentials: "include",
+  }).catch(handleApiError);
+
+export const logout = () =>
+  fetchJson(`${API_BASE_URL}/users/logout`, {
+    method: "POST",
+    credentials: "include",
+  }).catch(handleApiError);
+
+export const getCurrentUser = () =>
+  fetchJson(`${API_BASE_URL}/users/profile`, {
+    credentials: "include",
+  }).catch(handleApiError);
+
+export const fetchAirports = async () => {
+  const res = (await fetchJson(`${API_BASE_URL}/airports`)) as ApiResponse<
+    AirportAttributes[]
+  >;
+  return res.data ? res.data.map(convertToAirportOption) : [];
+};
+
+export const searchFlights = async (params: {
+  origin: string;
+  destination: string;
+  departureDate: string;
+  returnDate?: string;
+}) => {
+  const { origin, destination, departureDate, returnDate } = params;
+  let url = `${API_BASE_URL}/flights/search?origin=${origin}&destination=${destination}&departureDate=${departureDate}`;
+  if (returnDate) url += `&returnDate=${returnDate}`;
+  const res = (await fetchJson(url)) as ApiResponse<{
+    outbound: FlightAttributes[];
+    return?: FlightAttributes[];
+  }>;
+  return res.data && res.data.outbound
+    ? res.data.outbound.map((f) => ({
+        ...f,
+        DepartureTime: new Date(f.DepartureTime),
+        ArrivalTime: new Date(f.ArrivalTime),
+      }))
+    : [];
+};
+
+export const getFlightById = async (FlightID: number) => {
+  const res = (await fetchJson(
+    `${API_BASE_URL}/flights/${FlightID}`
+  )) as ApiResponse<FlightAttributes>;
+  const f = res.data;
+  return f
+    ? {
+        ...f,
+        DepartureTime: new Date(f.DepartureTime),
+        ArrivalTime: new Date(f.ArrivalTime),
+      }
+    : null;
+};
+
+export const fetchAvailableSeats = async (FlightID: number) => {
+  const res = (await fetchJson(
+    `${API_BASE_URL}/flights/${FlightID}/seats`
+  )) as ApiResponse<SeatAttributes[]>;
+  return res.data ? res.data.map((s) => ({ ...s })) : [];
+};
+
+export const createReservation = (
+  reservationData: Omit<
+    ReservationAttributes,
+    "ReservationID" | "BookingTime" | "createdAt" | "updatedAt" | "UserID"
+  >
+) =>
+  fetchJson(`${API_BASE_URL}/reservations`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(reservationData),
+    credentials: "include",
+  }).catch(handleApiError);
+
+export const getUserReservations = async (UserID: number) => {
+  const res = (await fetchJson(`${API_BASE_URL}/users/${UserID}/reservations`, {
+    credentials: "include",
+  })) as ApiResponse<ReservationAttributes[]>;
+  return res.data
+    ? res.data.map((r) => ({
+        ...r,
+        BookingTime: r.BookingTime ? new Date(r.BookingTime) : undefined,
+        flight: r.flight
+          ? {
+              ...r.flight,
+              DepartureTime: r.flight.DepartureTime
+                ? new Date(r.flight.DepartureTime)
+                : undefined,
+              ArrivalTime: r.flight.ArrivalTime
+                ? new Date(r.flight.ArrivalTime)
+                : undefined,
+            }
+          : undefined,
+        createdAt: r.createdAt ? new Date(r.createdAt) : undefined,
+        updatedAt: r.updatedAt ? new Date(r.updatedAt) : undefined,
+      }))
+    : [];
 };
 
 export { formatDateTime, formatDuration };

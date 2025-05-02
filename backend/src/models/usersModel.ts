@@ -4,7 +4,7 @@ import argon2 from "@node-rs/argon2";
 import Reservation from "./reservationModel.js";
 
 // Define User attributes interface
-interface UserAttributes {
+export interface UserAttributes {
   UserID: number;
   FirstName: string;
   LastName: string;
