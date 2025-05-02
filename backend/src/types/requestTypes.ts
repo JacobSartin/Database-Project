@@ -12,6 +12,8 @@ export interface RegisterRequestBody {
   username: string;
   password: string;
   email: string;
+  firstName: string;
+  lastName: string;
 }
 
 export interface LoginRequestBody {
@@ -38,6 +40,8 @@ export interface UserResponse {
   UserID: number;
   Username: string;
   Email: string;
+  FirstName: string;
+  LastName: string;
   isAdmin?: boolean;
 }
 

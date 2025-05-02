@@ -7,6 +7,10 @@ import {
   Divider,
   Grid,
   Alert,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
 } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import FlightTakeoffIcon from "@mui/icons-material/FlightTakeoff";
@@ -16,23 +20,34 @@ import { Flight, Seat, formatDateTime } from "../types/flightTypes";
 
 type BookingConfirmationProps = {
   flight: Flight;
-  seat: Seat;
+  seats: Seat[]; // Changed from single seat to array
   bookingId?: string;
   onBookAnother: () => void;
 };
 
 const BookingConfirmation: React.FC<BookingConfirmationProps> = ({
   flight,
-  seat,
+  seats, // Changed from seat
   bookingId = "TBD",
   onBookAnother,
 }) => {
-  // Generate a booking reference if not provided
-  const bookingReference =
-    bookingId ||
-    `ARL${Math.floor(Math.random() * 10000)
-      .toString()
-      .padStart(4, "0")}`;
+  // Format the booking reference for display
+  const formattedBookingReference = React.useMemo(() => {
+    // If no booking ID is provided, use a fallback format (should not happen with the fix)
+    if (!bookingId || bookingId === "TBD") {
+      return `ARL${Math.floor(Math.random() * 10000)
+        .toString()
+        .padStart(4, "0")}`;
+    }
+
+    // Format a single reservation ID
+    if (!bookingId.includes(",")) {
+      return `FLY-${bookingId}`;
+    }
+
+    // For multiple reservations, format as a group booking
+    return `FLY-GROUP-${bookingId.split(",")[0]}`;
+  }, [bookingId]);
 
   return (
     <Paper
@@ -60,13 +75,26 @@ const BookingConfirmation: React.FC<BookingConfirmationProps> = ({
           Booking Confirmed!
         </Typography>
         <Typography variant="subtitle1" align="center" color="text.secondary">
-          Your flight has been successfully booked.
+          Your {seats.length > 1 ? "seats have" : "seat has"} been successfully
+          booked.
         </Typography>
       </Box>
 
       <Alert severity="success" sx={{ mb: 3, width: "100%" }}>
-        <Typography variant="body1">
-          Your booking reference: <strong>{bookingReference}</strong>
+        <Typography
+          variant="body1"
+          sx={{ fontWeight: "medium", color: "#000000" }}
+        >
+          Your booking reference:{" "}
+          <strong
+            style={{
+              backgroundColor: "#f0f0f0",
+              padding: "2px 6px",
+              borderRadius: "4px",
+            }}
+          >
+            {formattedBookingReference}
+          </strong>
         </Typography>
       </Alert>
 
@@ -90,7 +118,7 @@ const BookingConfirmation: React.FC<BookingConfirmationProps> = ({
         <Divider sx={{ mb: 2 }} />
 
         <Grid container spacing={2}>
-          <Grid>
+          <Grid sx={{ gridColumn: { xs: "1 / -1", md: "span 6" } }}>
             <Typography variant="body2" color="text.secondary">
               Flight
             </Typography>
@@ -118,7 +146,7 @@ const BookingConfirmation: React.FC<BookingConfirmationProps> = ({
             </Typography>
           </Grid>
 
-          <Grid>
+          <Grid sx={{ gridColumn: { xs: "1 / -1", md: "span 6" } }}>
             <Typography variant="body2" color="text.secondary">
               Flight Number
             </Typography>
@@ -162,29 +190,53 @@ const BookingConfirmation: React.FC<BookingConfirmationProps> = ({
         </Typography>
         <Divider sx={{ mb: 2 }} />
 
-        <Grid container spacing={2}>
-          <Grid>
-            <Typography variant="body2" color="text.secondary">
-              Seat Number
-            </Typography>
-            <Typography
-              variant="body1"
-              gutterBottom
-              sx={{ fontWeight: "bold" }}
-            >
-              {seat.seatNumber}
-            </Typography>
-          </Grid>
+        {seats.length === 1 ? (
+          // Single seat display
+          <Grid container spacing={2}>
+            <Grid sx={{ gridColumn: { xs: "1 / -1", md: "span 6" } }}>
+              <Typography variant="body2" color="text.secondary">
+                Seat Number
+              </Typography>
+              <Typography
+                variant="body1"
+                gutterBottom
+                sx={{ fontWeight: "bold" }}
+              >
+                {seats[0].seatNumber}
+              </Typography>
+            </Grid>
 
-          <Grid>
-            <Typography variant="body2" color="text.secondary">
-              Class
-            </Typography>
-            <Typography variant="body1" gutterBottom>
-              Economy
-            </Typography>
+            <Grid sx={{ gridColumn: { xs: "1 / -1", md: "span 6" } }}>
+              <Typography variant="body2" color="text.secondary">
+                Class
+              </Typography>
+              <Typography variant="body1" gutterBottom>
+                Economy
+              </Typography>
+            </Grid>
           </Grid>
-        </Grid>
+        ) : (
+          // Multiple seats display
+          <Box>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              You have booked {seats.length} seats
+            </Typography>
+
+            <List>
+              {seats.map((seat) => (
+                <ListItem key={seat.seatId}>
+                  <ListItemIcon>
+                    <AirlineSeatReclineNormalIcon />
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={`Seat ${seat.seatNumber}`}
+                    secondary="Economy Class"
+                  />
+                </ListItem>
+              ))}
+            </List>
+          </Box>
+        )}
       </Paper>
 
       <Box sx={{ textAlign: "center", width: "100%" }}>

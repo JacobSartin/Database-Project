@@ -5,7 +5,11 @@ import Seat from "../models/seatModel.js";
 import Airport from "../models/airportsModel.js";
 import Aircraft from "../models/aircraftModel.js";
 import Reservation from "../models/reservationModel.js";
-import { FlightIdParams, SearchFlightQuery } from "../types/requestTypes.js";
+import {
+  FlightIdParams,
+  SearchFlightQuery,
+  ApiResponse,
+} from "../types/requestTypes.js";
 
 /**
  * Get all flights
@@ -21,14 +25,19 @@ export function getFlights(req: Request, res: Response): void {
     order: [["DepartureTime", "ASC"]],
   })
     .then((flights) => {
-      res.json(flights);
+      const response: ApiResponse<typeof flights> = {
+        message: "Flights retrieved successfully",
+        data: flights,
+      };
+      res.json(response);
     })
     .catch((error: unknown) => {
       console.error("Error fetching flights:", error);
-      res.status(500).json({
+      const response: ApiResponse<null> = {
         message: "Error fetching flights",
         error: error instanceof Error ? error.message : "Unknown error",
-      });
+      };
+      res.status(500).json(response);
     });
 }
 
@@ -43,7 +52,11 @@ export function getFlightById(
 ): void {
   const flightId = parseInt(req.params.id);
   if (isNaN(flightId)) {
-    res.status(400).json({ message: "Invalid flight ID" });
+    const response: ApiResponse<null> = {
+      message: "Invalid flight ID",
+      error: "The provided flight ID is not a valid number",
+    };
+    res.status(400).json(response);
     return;
   }
 
@@ -57,10 +70,18 @@ export function getFlightById(
   })
     .then((flight) => {
       if (!flight) {
-        res.status(404).json({ message: "Flight not found" });
+        const response: ApiResponse<null> = {
+          message: "Flight not found",
+          error: "The requested flight does not exist",
+        };
+        res.status(404).json(response);
         return Promise.reject(new Error("Flight not found")); // Break the chain
       }
-      res.json(flight);
+      const response: ApiResponse<typeof flight> = {
+        message: "Flight retrieved successfully",
+        data: flight,
+      };
+      res.json(response);
     })
     .catch((error: unknown) => {
       // Only send error response if one hasn't been sent already
@@ -69,10 +90,11 @@ export function getFlightById(
           `Error fetching flight with ID ${flightId.toString()}:`,
           error
         );
-        res.status(500).json({
+        const response: ApiResponse<null> = {
           message: "Error fetching flight",
           error: error instanceof Error ? error.message : "Unknown error",
-        });
+        };
+        res.status(500).json(response);
       }
     });
 }
@@ -87,7 +109,11 @@ export function searchFlights(req: Request, res: Response): void {
     req.query as SearchFlightQuery;
 
   if (!origin || !destination || !departureDate) {
-    res.status(400).json({ message: "Missing required search parameters" });
+    const response: ApiResponse<null> = {
+      message: "Missing required search parameters",
+      error: "Origin, destination, and departure date are required",
+    };
+    res.status(400).json(response);
     return;
   }
 
@@ -122,16 +148,20 @@ export function searchFlights(req: Request, res: Response): void {
     .then(([originAirport, destinationAirport]) => {
       // Validate airports
       if (!originAirport) {
-        res.status(404).json({
-          message: `Origin airport '${origin}' not found. Please check airport code or city name.`,
-        });
+        const response: ApiResponse<null> = {
+          message: `Origin airport '${origin}' not found`,
+          error: "Please check airport code or city name",
+        };
+        res.status(404).json(response);
         return Promise.reject(new Error("Origin airport not found"));
       }
 
       if (!destinationAirport) {
-        res.status(404).json({
-          message: `Destination airport '${destination}' not found. Please check airport code or city name.`,
-        });
+        const response: ApiResponse<null> = {
+          message: `Destination airport '${destination}' not found`,
+          error: "Please check airport code or city name",
+        };
+        res.status(404).json(response);
         return Promise.reject(new Error("Destination airport not found"));
       }
 
@@ -139,9 +169,11 @@ export function searchFlights(req: Request, res: Response): void {
         originAirport.getDataValue("AirportID") ===
         destinationAirport.getDataValue("AirportID")
       ) {
-        res.status(400).json({
-          message: "Origin and destination cannot be the same airport.",
-        });
+        const response: ApiResponse<null> = {
+          message: "Origin and destination cannot be the same airport",
+          error: "Please select different airports for origin and destination",
+        };
+        res.status(400).json(response);
         return Promise.reject(
           new Error("Same airport for origin and destination")
         );
@@ -179,9 +211,12 @@ export function searchFlights(req: Request, res: Response): void {
 
         // Validate return date
         if (returnStart < departureEnd) {
-          res.status(400).json({
-            message: "Return date must be after departure date.",
-          });
+          const response: ApiResponse<null> = {
+            message: "Return date must be after departure date",
+            error:
+              "Please select a return date that comes after the departure date",
+          };
+          res.status(400).json(response);
           return Promise.reject(new Error("Invalid return date"));
         }
 
@@ -211,21 +246,29 @@ export function searchFlights(req: Request, res: Response): void {
     })
     .then(([outboundFlights, returnFlights]) => {
       // Format response
-      res.json({
+      const flightData = {
         outbound: outboundFlights,
         return:
           // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
           returnFlights && returnFlights.length > 0 ? returnFlights : undefined,
-      });
+      };
+
+      const response: ApiResponse<typeof flightData> = {
+        message: "Flights retrieved successfully",
+        data: flightData,
+      };
+
+      res.json(response);
     })
     .catch((error: unknown) => {
       // Only send error response if one hasn't been sent already
       if (!res.headersSent) {
         console.error("Error searching flights:", error);
-        res.status(500).json({
+        const response: ApiResponse<null> = {
           message: "Error searching flights",
           error: error instanceof Error ? error.message : "Unknown error",
-        });
+        };
+        res.status(500).json(response);
       }
     });
 }
@@ -241,7 +284,11 @@ export function getAvailableSeats(
 ): void {
   const flightId = parseInt(req.params.id);
   if (isNaN(flightId)) {
-    res.status(400).json({ message: "Invalid flight ID" });
+    const response: ApiResponse<null> = {
+      message: "Invalid flight ID",
+      error: "The provided flight ID is not a valid number",
+    };
+    res.status(400).json(response);
     return;
   }
 
@@ -255,20 +302,30 @@ export function getAvailableSeats(
     },
   })
     .then((allSeats) => {
-      // Filter out seats that have reservations
-      const availableSeats = allSeats.filter((seat) => {
-        return !seat.get("reservation");
+      // Mark each seat with its booking status instead of filtering
+      const seatData = allSeats.map((seat) => {
+        const isBooked = !!seat.get("reservation");
+        const seatObj = seat.toJSON();
+        seatObj.IsBooked = isBooked;
+        return seatObj;
       });
-      res.json(availableSeats);
+
+      const response: ApiResponse<typeof seatData> = {
+        message: "Seats retrieved successfully",
+        data: seatData,
+      };
+
+      res.json(response);
     })
     .catch((error: unknown) => {
       console.error(
-        `Error fetching available seats for flight ${flightId.toString()}:`,
+        `Error fetching seats for flight ${flightId.toString()}:`,
         error
       );
-      res.status(500).json({
-        message: "Error fetching available seats",
+      const response: ApiResponse<null> = {
+        message: "Error fetching seats",
         error: error instanceof Error ? error.message : "Unknown error",
-      });
+      };
+      res.status(500).json(response);
     });
 }

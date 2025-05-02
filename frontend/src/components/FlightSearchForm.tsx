@@ -1,27 +1,33 @@
-import React, { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, FormEvent, KeyboardEvent } from "react";
 import {
   Box,
   FormControl,
-  FormLabel,
   RadioGroup,
   FormControlLabel,
   Radio,
   Button,
   Typography,
-  Grid,
   MenuItem,
   Select,
-  InputLabel,
   SelectChangeEvent,
   TextField,
   Autocomplete,
   Paper,
+  CircularProgress,
+  IconButton,
+  useTheme,
 } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { AirportOption } from "../types/flightTypes";
+import api from "../services/api";
 import Fuse from "fuse.js";
+import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
+import FlightTakeoffIcon from "@mui/icons-material/FlightTakeoff";
+import FlightLandIcon from "@mui/icons-material/FlightLand";
+import PersonIcon from "@mui/icons-material/Person";
+import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 
 // Configure Fuse.js with more effective fuzzy search settings
 const fuseOptions = {
@@ -40,116 +46,70 @@ const fuseOptions = {
 
 type FlightSearchFormProps = {
   onSearch: (
-    sourceAirport: AirportOption,
-    destinationAirport: AirportOption,
+    source: AirportOption,
+    destination: AirportOption,
     departureDate: Date | null,
     returnDate: Date | null,
-    passengerCount: number,
+    passengers: number,
     tripType: string
   ) => void;
+  initialValues?: {
+    sourceAirport: AirportOption | null;
+    destinationAirport: AirportOption | null;
+    departureDate: Date | null;
+    returnDate: Date | null;
+    passengerCount: number;
+    tripType: "oneWay" | "roundTrip";
+  };
 };
 
-const FlightSearchForm: React.FC<FlightSearchFormProps> = ({ onSearch }) => {
+const FlightSearchForm: React.FC<FlightSearchFormProps> = ({
+  onSearch,
+  initialValues,
+}) => {
+  const theme = useTheme();
   const [sourceAirport, setSourceAirport] = useState<AirportOption | null>(
-    null
+    initialValues?.sourceAirport || null
   );
   const [destinationAirport, setDestinationAirport] =
-    useState<AirportOption | null>(null);
-  const [departureDate, setDepartureDate] = useState<Date | null>(null);
-  const [returnDate, setReturnDate] = useState<Date | null>(null);
-  const [tripType, setTripType] = useState<"oneWay" | "roundTrip">("oneWay");
-  const [passengerCount, setPassengerCount] = useState<number>(1);
+    useState<AirportOption | null>(initialValues?.destinationAirport || null);
+  const [departureDate, setDepartureDate] = useState<Date | null>(
+    initialValues?.departureDate || null
+  );
+  const [returnDate, setReturnDate] = useState<Date | null>(
+    initialValues?.returnDate || null
+  );
+  const [tripType, setTripType] = useState<"oneWay" | "roundTrip">(
+    initialValues?.tripType || "oneWay"
+  );
+  const [passengerCount, setPassengerCount] = useState<number>(
+    initialValues?.passengerCount || 1
+  );
   const [airportOptions, setAirportOptions] = useState<AirportOption[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Current date for min date on date pickers
   const today = new Date();
 
   // Load airports on component mount
   useEffect(() => {
-    // In a real app, this would be an API call to fetch airports from your backend
-    fetchAirports();
+    const loadAirports = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const airports = await api.fetchAirports();
+        setAirportOptions(airports);
+      } catch (err) {
+        console.error("Error fetching airports:", err);
+        setError("Failed to load airports. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadAirports();
   }, []);
-
-  // Fetch airports from the backend
-  const fetchAirports = async () => {
-    try {
-      // This would be replaced with an actual API call
-      // For now, we'll use sample data based on your database
-      const airports: AirportOption[] = [
-        {
-          value: "JFK",
-          label: "New York - JFK (John F. Kennedy International Airport)",
-          airportId: 1,
-        },
-        {
-          value: "LAX",
-          label: "Los Angeles - LAX (Los Angeles International Airport)",
-          airportId: 2,
-        },
-        {
-          value: "LHR",
-          label: "London - LHR (London Heathrow Airport)",
-          airportId: 3,
-        },
-        {
-          value: "CDG",
-          label: "Paris - CDG (Charles de Gaulle Airport)",
-          airportId: 4,
-        },
-        { value: "HND", label: "Tokyo - HND (Haneda Airport)", airportId: 5 },
-        { value: "SYD", label: "Sydney - SYD (Sydney Airport)", airportId: 6 },
-        {
-          value: "DXB",
-          label: "Dubai - DXB (Dubai International Airport)",
-          airportId: 7,
-        },
-        {
-          value: "SIN",
-          label: "Singapore - SIN (Singapore Changi Airport)",
-          airportId: 8,
-        },
-        {
-          value: "AMS",
-          label: "Amsterdam - AMS (Schiphol Airport)",
-          airportId: 9,
-        },
-        {
-          value: "FRA",
-          label: "Frankfurt - FRA (Frankfurt Airport)",
-          airportId: 10,
-        },
-        {
-          value: "MAD",
-          label: "Madrid - MAD (Adolfo Suárez Madrid–Barajas Airport)",
-          airportId: 11,
-        },
-        {
-          value: "FCO",
-          label: "Rome - FCO (Leonardo da Vinci–Fiumicino Airport)",
-          airportId: 12,
-        },
-        {
-          value: "YYZ",
-          label: "Toronto - YYZ (Toronto Pearson International Airport)",
-          airportId: 13,
-        },
-        {
-          value: "PEK",
-          label: "Beijing - PEK (Beijing Capital International Airport)",
-          airportId: 14,
-        },
-        {
-          value: "ICN",
-          label: "Seoul - ICN (Incheon International Airport)",
-          airportId: 15,
-        },
-      ];
-
-      setAirportOptions(airports);
-    } catch (error) {
-      console.error("Error fetching airports:", error);
-    }
-  };
 
   // Create Fuse instance for fuzzy search
   const fuse = useMemo(
@@ -157,8 +117,15 @@ const FlightSearchForm: React.FC<FlightSearchFormProps> = ({ onSearch }) => {
     [airportOptions]
   );
 
+  // Prevent form submission when pressing enter in airport fields
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+    }
+  };
+
   // Handle form submission to search for flights
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = (e: FormEvent) => {
     e.preventDefault();
 
     if (!sourceAirport || !destinationAirport || !departureDate) {
@@ -166,6 +133,7 @@ const FlightSearchForm: React.FC<FlightSearchFormProps> = ({ onSearch }) => {
       return;
     }
 
+    // Call the parent component's onSearch function with all the necessary parameters
     onSearch(
       sourceAirport,
       destinationAirport,
@@ -188,35 +156,68 @@ const FlightSearchForm: React.FC<FlightSearchFormProps> = ({ onSearch }) => {
     }
   };
 
+  const handleSwapAirports = () => {
+    const temp = sourceAirport;
+    setSourceAirport(destinationAirport);
+    setDestinationAirport(temp);
+  };
+
   return (
     <Paper
-      elevation={1}
+      elevation={3}
       sx={{
-        border: "1px solid #e0e0e0",
         borderRadius: 2,
-        p: 3,
-        mb: 3,
+        overflow: "hidden",
         width: "100%",
         boxSizing: "border-box",
+        bgcolor: "#14161d",
+        color: "white",
       }}
     >
-      <Typography variant="h5" gutterBottom component="h2">
-        Book a Flight
-      </Typography>
+      {/* Dark header section like Delta's */}
+      <Box sx={{ p: 3, pb: 0 }}>
+        <Typography
+          variant="h5"
+          gutterBottom
+          component="h2"
+          sx={{ color: "white", fontWeight: "bold", mb: 2 }}
+        >
+          Book a Flight
+        </Typography>
 
+        {error && (
+          <Typography color="error" sx={{ mb: 2 }}>
+            {error}
+          </Typography>
+        )}
+      </Box>
+
+      {/* Trip type selection styled like Delta */}
       <Box
-        component="form"
-        onSubmit={handleSearch}
-        noValidate
-        sx={{ width: "100%" }}
+        sx={{
+          p: 3,
+          pt: 0,
+          mb: 0,
+        }}
       >
-        <FormControl component="fieldset" sx={{ mb: 2, width: "100%" }}>
-          <FormLabel component="legend">Trip Type</FormLabel>
+        <FormControl component="fieldset" sx={{ width: "100%", mb: 2 }}>
           <RadioGroup
             row
             name="tripType"
             value={tripType}
             onChange={handleTripTypeChange}
+            sx={{
+              "& .MuiFormControlLabel-root": {
+                color: "white",
+                mr: 4,
+              },
+              "& .MuiRadio-root": {
+                color: "white",
+              },
+              "& .Mui-checked": {
+                color: theme.palette.primary.main,
+              },
+            }}
           >
             <FormControlLabel
               value="oneWay"
@@ -230,54 +231,326 @@ const FlightSearchForm: React.FC<FlightSearchFormProps> = ({ onSearch }) => {
             />
           </RadioGroup>
         </FormControl>
+      </Box>
 
-        <Grid container spacing={3}>
-          <Grid>
-            <Autocomplete
-              id="source-airport"
-              options={airportOptions}
-              getOptionLabel={(option) => option.label}
-              value={sourceAirport}
-              onChange={(_, newValue) => {
-                setSourceAirport(newValue);
+      <Box
+        component="form"
+        onSubmit={handleSearch}
+        noValidate
+        sx={{ width: "100%" }}
+      >
+        {/* Origin-Destination Section */}
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: { xs: "column", md: "row" },
+            p: 3,
+            pt: 0,
+            pb: 3,
+            alignItems: "center",
+            gap: 2,
+          }}
+        >
+          <Box
+            sx={{
+              flex: 1,
+              width: "100%",
+              bgcolor: "rgba(255,255,255,0.12)",
+              borderRadius: 1,
+              p: 2,
+              height: "120px",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+              <FlightTakeoffIcon sx={{ color: "white", mr: 1 }} />
+              <Typography
+                variant="body2"
+                sx={{ color: "rgba(255,255,255,0.7)" }}
+              >
+                FROM
+              </Typography>
+            </Box>
+            <Box
+              sx={{
+                position: "relative",
+                height: "72px", // Exact height to fit all elements
+                display: "flex",
+                flexDirection: "column",
               }}
-              filterOptions={(options, state) => {
-                if (!state.inputValue) return options;
-                const results = fuse.search(state.inputValue);
-                return results.map((result) => result.item);
-              }}
-              renderInput={(params) => (
-                <TextField {...params} label="From" required fullWidth />
+            >
+              <Autocomplete
+                id="source-airport"
+                options={airportOptions}
+                getOptionLabel={(option) => option.label}
+                value={sourceAirport}
+                onChange={(_, newValue) => {
+                  setSourceAirport(newValue);
+                }}
+                loading={loading}
+                onKeyDown={handleKeyDown}
+                filterOptions={(options, state) => {
+                  if (!state.inputValue) return options;
+                  const results = fuse.search(state.inputValue);
+                  return results.map((result) => result.item);
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    placeholder="Select origin"
+                    required
+                    fullWidth
+                    variant="standard"
+                    InputProps={{
+                      ...params.InputProps,
+                      disableUnderline: true,
+                      endAdornment: (
+                        <>
+                          {loading ? (
+                            <CircularProgress color="inherit" size={20} />
+                          ) : null}
+                          {params.InputProps.endAdornment}
+                        </>
+                      ),
+                      sx: {
+                        height: sourceAirport ? "40px" : "72px", // Fixed height regardless of content
+                        fontSize: sourceAirport ? "2rem" : "1.2rem",
+                        fontWeight: sourceAirport ? "700" : "400",
+                        color: "white",
+                        "&::placeholder": {
+                          color: "rgba(255,255,255,0.7)",
+                        },
+                      },
+                    }}
+                    sx={{
+                      "& .MuiInputBase-root": {
+                        color: "white",
+                      },
+                      "& .MuiAutocomplete-endAdornment": {
+                        color: "white",
+                      },
+                      // Hide default autocomplete clear button
+                      "& .MuiAutocomplete-clearIndicator": {
+                        color: "white",
+                      },
+                    }}
+                    // Display only the code when selected but allow editing
+                    inputProps={{
+                      ...params.inputProps,
+                      value: sourceAirport
+                        ? sourceAirport.value
+                        : params.inputProps.value,
+                    }}
+                  />
+                )}
+                sx={{
+                  width: "100%",
+                  "& .MuiAutocomplete-popupIndicator": {
+                    color: "white", // White dropdown arrow
+                  },
+                  "& .MuiAutocomplete-clearIndicator": {
+                    color: "white", // White clear button
+                  },
+                  "& .MuiAutocomplete-listbox": {
+                    backgroundColor: "#1e2030", // Darker background for dropdown
+                    color: "white", // White text for dropdown options
+                  },
+                }}
+              />
+              {sourceAirport && (
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: "rgba(255,255,255,0.7)",
+                    mt: "4px",
+                    height: "20px", // Fixed height for caption
+                    display: "block",
+                  }}
+                >
+                  {sourceAirport.label.split(" - ")[0]}
+                </Typography>
               )}
-            />
-          </Grid>
+            </Box>
+          </Box>
 
-          <Grid>
-            <Autocomplete
-              id="destination-airport"
-              options={airportOptions}
-              getOptionLabel={(option) => option.label}
-              value={destinationAirport}
-              onChange={(_, newValue) => {
-                setDestinationAirport(newValue);
+          {/* Swap button between airports */}
+          <IconButton
+            onClick={handleSwapAirports}
+            sx={{
+              bgcolor: "rgba(255,255,255,0.1)",
+              "&:hover": { bgcolor: "rgba(255,255,255,0.2)" },
+              display: { xs: "none", md: "flex" },
+            }}
+          >
+            <SwapHorizIcon sx={{ color: "white" }} />
+          </IconButton>
+
+          <Box
+            sx={{
+              flex: 1,
+              width: "100%",
+              bgcolor: "rgba(255,255,255,0.12)",
+              borderRadius: 1,
+              p: 2,
+              height: "120px",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+              <FlightLandIcon sx={{ color: "white", mr: 1 }} />
+              <Typography
+                variant="body2"
+                sx={{ color: "rgba(255,255,255,0.7)" }}
+              >
+                TO
+              </Typography>
+            </Box>
+            <Box
+              sx={{
+                position: "relative",
+                height: "72px", // Exact height to fit all elements
+                display: "flex",
+                flexDirection: "column",
               }}
-              filterOptions={(options, state) => {
-                if (!state.inputValue) return options;
-                const results = fuse.search(state.inputValue);
-                return results.map((result) => result.item);
-              }}
-              renderInput={(params) => (
-                <TextField {...params} label="To" required fullWidth />
+            >
+              <Autocomplete
+                id="destination-airport"
+                options={airportOptions}
+                getOptionLabel={(option) => option.label}
+                value={destinationAirport}
+                onChange={(_, newValue) => {
+                  setDestinationAirport(newValue);
+                }}
+                loading={loading}
+                onKeyDown={handleKeyDown}
+                filterOptions={(options, state) => {
+                  if (!state.inputValue) return options;
+                  const results = fuse.search(state.inputValue);
+                  return results.map((result) => result.item);
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    placeholder="Select destination"
+                    required
+                    fullWidth
+                    variant="standard"
+                    InputProps={{
+                      ...params.InputProps,
+                      disableUnderline: true,
+                      endAdornment: (
+                        <>
+                          {loading ? (
+                            <CircularProgress color="inherit" size={20} />
+                          ) : null}
+                          {params.InputProps.endAdornment}
+                        </>
+                      ),
+                      sx: {
+                        height: destinationAirport ? "40px" : "72px", // Fixed height regardless of content
+                        fontSize: destinationAirport ? "2rem" : "1.2rem",
+                        fontWeight: destinationAirport ? "700" : "400",
+                        color: "white",
+                        "&::placeholder": {
+                          color: "rgba(255,255,255,0.7)",
+                        },
+                      },
+                    }}
+                    sx={{
+                      "& .MuiInputBase-root": {
+                        color: "white",
+                      },
+                      "& .MuiAutocomplete-endAdornment": {
+                        color: "white",
+                      },
+                      // Hide default autocomplete clear button
+                      "& .MuiAutocomplete-clearIndicator": {
+                        color: "white",
+                      },
+                    }}
+                    // Display only the code when selected but allow editing
+                    inputProps={{
+                      ...params.inputProps,
+                      value: destinationAirport
+                        ? destinationAirport.value
+                        : params.inputProps.value,
+                    }}
+                  />
+                )}
+                sx={{
+                  width: "100%",
+                  "& .MuiAutocomplete-popupIndicator": {
+                    color: "white", // White dropdown arrow
+                  },
+                  "& .MuiAutocomplete-clearIndicator": {
+                    color: "white", // White clear button
+                  },
+                  "& .MuiAutocomplete-listbox": {
+                    backgroundColor: "#1e2030", // Darker background for dropdown
+                    color: "white", // White text for dropdown options
+                  },
+                }}
+              />
+              {destinationAirport && (
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: "rgba(255,255,255,0.7)",
+                    mt: "4px",
+                    height: "20px", // Fixed height for caption
+                    display: "block",
+                  }}
+                >
+                  {destinationAirport.label.split(" - ")[0]}
+                </Typography>
               )}
-            />
-          </Grid>
+            </Box>
+          </Box>
+        </Box>
 
-          {/* This grid layout always ensures the same form width regardless of trip type */}
-          <Grid container spacing={3}>
-            <Grid>
+        {/* Dates and Passengers Section */}
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: { xs: "column", md: "row" },
+            p: 3,
+            pt: 0,
+            gap: 2,
+          }}
+        >
+          <Box
+            sx={{
+              flex: 1,
+              width: "100%",
+              bgcolor: "rgba(255,255,255,0.12)",
+              borderRadius: 1,
+              p: 2,
+              height: "120px", // Fixed height to match other fields
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+              <CalendarTodayIcon sx={{ color: "white", mr: 1 }} />
+              <Typography
+                variant="body2"
+                sx={{ color: "rgba(255,255,255,0.7)" }}
+              >
+                DEPART
+              </Typography>
+            </Box>
+            <Box
+              sx={{
+                height: "72px", // Fixed height to match other fields
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+              }}
+            >
               <LocalizationProvider dateAdapter={AdapterDateFns}>
                 <DatePicker
-                  label="Departure Date"
                   value={departureDate}
                   onChange={(newValue) => setDepartureDate(newValue)}
                   disablePast
@@ -285,22 +558,109 @@ const FlightSearchForm: React.FC<FlightSearchFormProps> = ({ onSearch }) => {
                     textField: {
                       required: true,
                       fullWidth: true,
+                      variant: "standard",
+                      InputProps: {
+                        disableUnderline: true,
+                        sx: {
+                          fontSize: departureDate ? "1.5rem" : "1.2rem",
+                          fontWeight: departureDate ? "600" : "400",
+                          color: "white",
+                          height: "40px", // Fixed height
+                          "& .MuiSvgIcon-root": {
+                            color: "white !important", // Force white color on calendar icon
+                          },
+                        },
+                      },
+                      placeholder: "Select date",
+                      sx: {
+                        "& .MuiInputBase-root": {
+                          color: "white",
+                        },
+                        "& .MuiInputAdornment-root": {
+                          color: "white !important", // Force white color on adornment
+                        },
+                        "& .MuiButtonBase-root": {
+                          color: "white !important", // Force white on button
+                        },
+                      },
+                    },
+                    day: {
+                      sx: {
+                        color: "#ffffff",
+                        "&.Mui-selected": {
+                          backgroundColor: "#e51937", // Delta red for selected date
+                          color: "white",
+                        },
+                      },
+                    },
+                    // Style the icons in the popup calendar
+                    actionBar: {
+                      sx: {
+                        "& .MuiButtonBase-root": {
+                          color: "white",
+                        },
+                      },
+                    },
+                  }}
+                  sx={{
+                    width: "100%",
+                    "& .MuiInputBase-root": {
+                      color: "white !important",
+                    },
+                    "& .MuiSvgIcon-root": {
+                      color: "white !important", // Added !important to force white
+                    },
+                    "& .MuiButtonBase-root .MuiSvgIcon-root": {
+                      color: "white !important", // Target icon within button
+                    },
+                    "& .MuiPickersPopper-paper": {
+                      backgroundColor: "#1e2030",
+                      color: "white",
+                    },
+                    "& .MuiPickersCalendarHeader-switchViewIcon": {
+                      color: "white !important", // Calendar header icons
                     },
                   }}
                 />
               </LocalizationProvider>
-            </Grid>
+            </Box>
+          </Box>
 
-            <Grid
+          {/* Always render the return date box but control its opacity and interactivity */}
+          <Box
+            sx={{
+              flex: 1,
+              width: "100%",
+              bgcolor: "rgba(255,255,255,0.12)",
+              borderRadius: 1,
+              p: 2,
+              height: "120px", // Fixed height to match other fields
+              display: "flex",
+              flexDirection: "column",
+              opacity: tripType === "roundTrip" ? 1 : 0.4,
+              pointerEvents: tripType === "roundTrip" ? "auto" : "none",
+              transition: "opacity 0.3s ease",
+            }}
+          >
+            <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+              <CalendarTodayIcon sx={{ color: "white", mr: 1 }} />
+              <Typography
+                variant="body2"
+                sx={{ color: "rgba(255,255,255,0.7)" }}
+              >
+                RETURN
+              </Typography>
+            </Box>
+            <Box
               sx={{
-                display: tripType === "roundTrip" ? "block" : "none",
-                // Keep the space even when hidden to prevent layout shift
-                visibility: tripType === "roundTrip" ? "visible" : "hidden",
+                height: "72px", // Fixed height to match other fields
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
               }}
             >
               <LocalizationProvider dateAdapter={AdapterDateFns}>
                 <DatePicker
-                  label="Return Date"
                   value={returnDate}
                   onChange={(newValue) => setReturnDate(newValue)}
                   disablePast
@@ -309,42 +669,172 @@ const FlightSearchForm: React.FC<FlightSearchFormProps> = ({ onSearch }) => {
                     textField: {
                       required: tripType === "roundTrip",
                       fullWidth: true,
+                      variant: "standard",
+                      InputProps: {
+                        disableUnderline: true,
+                        sx: {
+                          fontSize: returnDate ? "1.5rem" : "1.2rem",
+                          fontWeight: returnDate ? "600" : "400",
+                          color: "white",
+                          height: "40px", // Fixed height
+                          "& .MuiSvgIcon-root": {
+                            color: "white !important", // Force white color on calendar icon
+                          },
+                        },
+                      },
+                      placeholder: "Select date",
+                      sx: {
+                        "& .MuiInputBase-root": {
+                          color: "white",
+                        },
+                        "& .MuiInputAdornment-root": {
+                          color: "white !important", // Force white color on adornment
+                        },
+                        "& .MuiButtonBase-root": {
+                          color: "white !important", // Force white on button
+                        },
+                      },
+                    },
+                    day: {
+                      sx: {
+                        color: "#ffffff",
+                        "&.Mui-selected": {
+                          backgroundColor: "#e51937",
+                          color: "white",
+                        },
+                      },
+                    },
+                    // Style the icons in the popup calendar
+                    actionBar: {
+                      sx: {
+                        "& .MuiButtonBase-root": {
+                          color: "white",
+                        },
+                      },
+                    },
+                  }}
+                  sx={{
+                    width: "100%",
+                    "& .MuiInputBase-root": {
+                      color: "white !important",
+                    },
+                    "& .MuiSvgIcon-root": {
+                      color: "white !important", // Added !important to force white
+                    },
+                    "& .MuiButtonBase-root .MuiSvgIcon-root": {
+                      color: "white !important", // Target icon within button
+                    },
+                    "& .MuiPickersPopper-paper": {
+                      // Calendar popup
+                      backgroundColor: "#1e2030",
+                      color: "white",
+                    },
+                    "& .MuiPickersCalendarHeader-switchViewIcon": {
+                      color: "white !important", // Calendar header icons
                     },
                   }}
                 />
               </LocalizationProvider>
-            </Grid>
+            </Box>
+          </Box>
 
-            <Grid>
-              <FormControl fullWidth>
-                <InputLabel id="passenger-count-label">Passengers</InputLabel>
+          <Box
+            sx={{
+              flex: 1,
+              width: "100%",
+              bgcolor: "rgba(255,255,255,0.12)",
+              borderRadius: 1,
+              p: 2,
+              height: "120px", // Fixed height to match other fields
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+              <PersonIcon sx={{ color: "white", mr: 1 }} />
+              <Typography
+                variant="body2"
+                sx={{ color: "rgba(255,255,255,0.7)" }}
+              >
+                PASSENGERS
+              </Typography>
+            </Box>
+            <Box
+              sx={{
+                height: "72px", // Fixed height to match other fields
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+              }}
+            >
+              <FormControl fullWidth variant="standard">
                 <Select
-                  labelId="passenger-count-label"
                   id="passenger-count"
                   value={passengerCount}
-                  label="Passengers"
                   onChange={handlePassengerChange}
+                  disableUnderline
+                  MenuProps={{
+                    PaperProps: {
+                      sx: {
+                        bgcolor: "#1e2030",
+                        color: "white",
+                        "& .MuiMenuItem-root": {
+                          color: "white",
+                          "&:hover": {
+                            bgcolor: "rgba(255,255,255,0.1)",
+                          },
+                          "&.Mui-selected": {
+                            bgcolor: "rgba(229,25,55,0.2)",
+                            "&:hover": {
+                              bgcolor: "rgba(229,25,55,0.3)",
+                            },
+                          },
+                        },
+                      },
+                    },
+                  }}
+                  sx={{
+                    color: "white",
+                    fontSize: "1.5rem",
+                    fontWeight: "600",
+                    height: "40px", // Fixed height
+                    "& .MuiSelect-icon": {
+                      color: "white",
+                    },
+                  }}
                 >
                   {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
                     <MenuItem key={num} value={num}>
-                      {num}
+                      {num} {num === 1 ? "Passenger" : "Passengers"}
                     </MenuItem>
                   ))}
                 </Select>
               </FormControl>
-            </Grid>
-          </Grid>
-        </Grid>
+            </Box>
+          </Box>
+        </Box>
 
-        <Box sx={{ mt: 3 }}>
+        {/* Search Button Section */}
+        <Box sx={{ p: 3, display: "flex", justifyContent: "flex-end" }}>
           <Button
             type="submit"
             variant="contained"
             size="large"
-            fullWidth
             disableElevation
+            disabled={loading || !!error}
+            sx={{
+              px: 6,
+              py: 1.5,
+              backgroundColor: "#e51937", // Delta red
+              "&:hover": {
+                backgroundColor: "#c0142e", // Darker red on hover
+              },
+              borderRadius: 0,
+              fontWeight: "bold",
+              fontSize: "1rem",
+            }}
           >
-            Search Flights
+            SEARCH
           </Button>
         </Box>
       </Box>

@@ -1,4 +1,3 @@
-import React from "react";
 import {
   Box,
   Typography,
@@ -16,33 +15,74 @@ import { Flight, Seat, formatDateTime } from "../types/flightTypes";
 type SeatMapProps = {
   flight: Flight;
   seats: Seat[];
-  selectedSeat: Seat | null;
+  selectedSeats: Seat[]; // Changed from single seat to array
   onSeatSelect: (seat: Seat) => void;
   onBack: () => void;
   onConfirm: () => void;
   loading?: boolean;
+  passengerCount?: number;
 };
 
 const SeatMap: React.FC<SeatMapProps> = ({
   flight,
   seats,
-  selectedSeat,
+  selectedSeats, // Changed from selectedSeat
   onSeatSelect,
   onBack,
   onConfirm,
   loading = false,
+  passengerCount = 1,
 }) => {
-  // Group seats by row
-  const seatsByRow: { [row: string]: Seat[] } = {};
+  // Organize seats into a grid structure for display
+  // This helps visualize a proper airplane layout
+  const organizeSeatsIntoGrid = () => {
+    const seatGrid: { [row: string]: { [col: string]: Seat | null } } = {};
+    const columns = ["A", "B", "C", "D", "E", "F"];
 
-  seats.forEach((seat) => {
-    const row = seat.seatNumber.match(/^\d+/)?.[0] || "";
-    if (!seatsByRow[row]) seatsByRow[row] = [];
-    seatsByRow[row].push(seat);
-  });
+    // Extract all unique row numbers from the seats array
+    const uniqueRows = Array.from(
+      new Set(
+        seats.map((seat) => {
+          const row = seat.seatNumber.match(/^\d+/)?.[0] || "";
+          return parseInt(row, 10);
+        })
+      )
+    ).sort((a, b) => a - b);
 
-  const handleSeatClick = (seat: Seat) => {
-    if (!seat.isBooked) {
+    // Get the maximum row number
+    const maxRows = uniqueRows.length > 0 ? Math.max(...uniqueRows) : 0;
+
+    // Initialize the grid with null values (no seats)
+    for (let r = 1; r <= maxRows; r++) {
+      const rowString = String(r);
+      seatGrid[rowString] = {};
+      columns.forEach((col) => {
+        seatGrid[rowString][col] = null;
+      });
+    }
+
+    // Fill in the available seats
+    seats.forEach((seat) => {
+      const seatNumber = seat.seatNumber; // Format should be like "1A", "2B", etc.
+      const row = seatNumber.match(/^\d+/)?.[0] || "";
+      const col = seatNumber.replace(row, "");
+
+      if (row && col && seatGrid[row]) {
+        seatGrid[row][col] = seat;
+      }
+    });
+
+    return {
+      seatGrid,
+      rows: Object.keys(seatGrid).sort((a, b) => parseInt(a) - parseInt(b)),
+      columns,
+    };
+  };
+
+  const { seatGrid, rows, columns } = organizeSeatsIntoGrid();
+
+  const handleSeatClick = (seat: Seat | null) => {
+    if (seat && !seat.isBooked) {
       onSeatSelect(seat);
     }
   };
@@ -68,6 +108,9 @@ const SeatMap: React.FC<SeatMapProps> = ({
       </Paper>
     );
   }
+
+  // Count the number of selected seats
+  const selectedSeatCount = selectedSeats.length;
 
   return (
     <Paper
@@ -123,9 +166,27 @@ const SeatMap: React.FC<SeatMapProps> = ({
           boxSizing: "border-box",
         }}
       >
+        {/* Plane Front - Moved to the top before the seat grid */}
+        <Box sx={{ textAlign: "center", mb: 4 }}>
+          <Paper
+            elevation={0}
+            sx={{
+              display: "inline-block",
+              border: "2px solid",
+              borderColor: "grey.400",
+              borderRadius: 2,
+              px: 4,
+              py: 1,
+              color: "text.secondary",
+            }}
+          >
+            FRONT OF PLANE
+          </Paper>
+        </Box>
+
         <Grid container spacing={2}>
           {/* Legend */}
-          <Grid>
+          <Grid sx={{ gridColumn: "1 / -1" }}>
             <Box sx={{ display: "flex", gap: 3, mb: 2, flexWrap: "wrap" }}>
               <Box sx={{ display: "flex", alignItems: "center" }}>
                 <Box
@@ -166,142 +227,373 @@ const SeatMap: React.FC<SeatMapProps> = ({
             </Box>
           </Grid>
 
-          {/* Plane Front */}
-          <Grid sx={{ textAlign: "center", mb: 2 }}>
-            <Paper
-              elevation={0}
-              sx={{
-                display: "inline-block",
-                border: "2px solid",
-                borderColor: "grey.400",
-                borderRadius: 2,
-                px: 4,
-                py: 1,
-                color: "text.secondary",
-              }}
-            >
-              FRONT OF PLANE
-            </Paper>
-          </Grid>
-
-          {/* Seat Map */}
-          <Grid
-            sx={{ display: "flex", justifyContent: "center", width: "100%" }}
-          >
+          {/* Seat Map - Use the grid system */}
+          <Grid sx={{ gridColumn: "1 / -1" }}>
             <Box
-              sx={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 0.5,
-                maxHeight: "400px",
-                overflowY: "auto",
-                width: "100%",
-                maxWidth: "600px", // Set a max width for better visual appearance
-                px: 2,
-                py: 1,
-              }}
+              sx={{ display: "flex", justifyContent: "center", width: "100%" }}
             >
-              {Object.keys(seatsByRow)
-                .sort((a, b) => parseInt(a) - parseInt(b))
-                .map((row) => (
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 2,
+                  maxWidth: "800px",
+                  width: "100%",
+                }}
+              >
+                {/* Column headers */}
+                <Box sx={{ display: "flex", justifyContent: "center", mb: 1 }}>
+                  <Box sx={{ width: "30px" }} />
                   <Box
-                    key={row}
                     sx={{
                       display: "flex",
-                      justifyContent: "center",
-                      mb: 0.5,
-                      width: "100%",
+                      flex: 1,
                     }}
                   >
-                    <Typography
+                    {/* First 3 columns (A-B-C) */}
+                    <Box
                       sx={{
-                        width: 30,
+                        display: "flex",
+                        justifyContent: "space-around",
+                        flex: 1,
+                      }}
+                    >
+                      {columns.slice(0, 3).map((col) => (
+                        <Box
+                          key={col}
+                          sx={{
+                            width: "40px",
+                            textAlign: "center",
+                            fontWeight: "bold",
+                          }}
+                        >
+                          {col}
+                        </Box>
+                      ))}
+                    </Box>
+
+                    {/* Aisle */}
+                    <Box sx={{ width: "30px" }} />
+
+                    {/* Last 3 columns (D-E-F) */}
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "space-around",
+                        flex: 1,
+                      }}
+                    >
+                      {columns.slice(3).map((col) => (
+                        <Box
+                          key={col}
+                          sx={{
+                            width: "40px",
+                            textAlign: "center",
+                            fontWeight: "bold",
+                          }}
+                        >
+                          {col}
+                        </Box>
+                      ))}
+                    </Box>
+                  </Box>
+                </Box>
+
+                {/* Seat rows */}
+                {rows.map((row) => (
+                  <Box key={row} sx={{ display: "flex", alignItems: "center" }}>
+                    <Box
+                      sx={{
+                        width: "30px",
                         textAlign: "center",
-                        mt: 1,
                         fontWeight: "bold",
                       }}
                     >
                       {row}
-                    </Typography>
+                    </Box>
                     <Box
                       sx={{
                         display: "flex",
-                        gap: 1,
-                        justifyContent: "center",
                         flex: 1,
                       }}
                     >
-                      {seatsByRow[row].map((seat) => (
-                        <Tooltip
-                          key={seat.seatId}
-                          title={
-                            seat.isBooked
-                              ? "Seat not available"
-                              : `Seat ${seat.seatNumber}`
-                          }
-                        >
-                          <Box
-                            onClick={() => handleSeatClick(seat)}
-                            sx={{
-                              width: 40,
-                              height: 40,
-                              display: "flex",
-                              justifyContent: "center",
-                              alignItems: "center",
-                              borderRadius: 1,
-                              cursor: seat.isBooked ? "not-allowed" : "pointer",
-                              bgcolor: seat.isBooked
-                                ? "grey.300"
-                                : selectedSeat?.seatId === seat.seatId
-                                  ? "primary.main"
-                                  : "success.light",
-                              color:
-                                selectedSeat?.seatId === seat.seatId
-                                  ? "white"
-                                  : "text.primary",
-                              transition: "all 0.2s",
-                              "&:hover": {
-                                boxShadow: seat.isBooked ? "none" : 2,
-                                transform: seat.isBooked
-                                  ? "none"
-                                  : "scale(1.05)",
-                              },
-                            }}
-                          >
-                            {selectedSeat?.seatId === seat.seatId ? (
-                              <CheckCircleOutlineIcon fontSize="small" />
-                            ) : (
-                              <AirlineSeatReclineNormalIcon fontSize="small" />
-                            )}
-                          </Box>
-                        </Tooltip>
-                      ))}
+                      {/* First 3 columns (A-B-C) */}
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-around",
+                          flex: 1,
+                          gap: 1,
+                        }}
+                      >
+                        {columns.slice(0, 3).map((col) => {
+                          const seat = seatGrid[row][col];
+                          const seatExists = seat !== null;
+                          const isBooked = seat?.isBooked || false;
+                          const isSelected =
+                            seatExists &&
+                            selectedSeats.some((s) => s.seatId === seat.seatId);
+
+                          return (
+                            <Tooltip
+                              key={`${row}${col}`}
+                              title={
+                                !seatExists
+                                  ? "No seat"
+                                  : isBooked
+                                    ? "Booked"
+                                    : `Seat ${row}${col}`
+                              }
+                            >
+                              <Box
+                                onClick={() =>
+                                  seatExists && handleSeatClick(seat)
+                                }
+                                sx={{
+                                  width: 40,
+                                  height: 40,
+                                  display: "flex",
+                                  justifyContent: "center",
+                                  alignItems: "center",
+                                  borderRadius: 1,
+                                  cursor:
+                                    !seatExists || isBooked
+                                      ? "not-allowed"
+                                      : "pointer",
+                                  bgcolor: !seatExists
+                                    ? "transparent"
+                                    : isBooked
+                                      ? "grey.300"
+                                      : isSelected
+                                        ? "primary.main"
+                                        : "success.light",
+                                  color: isSelected ? "white" : "text.primary",
+                                  transition: "all 0.2s",
+                                  border: !seatExists
+                                    ? "1px dashed grey.300"
+                                    : "none",
+                                  visibility: !seatExists
+                                    ? "hidden"
+                                    : "visible",
+                                  "&:hover": {
+                                    boxShadow:
+                                      !seatExists || isBooked ? "none" : 2,
+                                    transform:
+                                      !seatExists || isBooked
+                                        ? "none"
+                                        : "scale(1.05)",
+                                  },
+                                }}
+                              >
+                                {seatExists &&
+                                  (isSelected ? (
+                                    <CheckCircleOutlineIcon fontSize="small" />
+                                  ) : (
+                                    <AirlineSeatReclineNormalIcon fontSize="small" />
+                                  ))}
+                              </Box>
+                            </Tooltip>
+                          );
+                        })}
+                      </Box>
+
+                      {/* Aisle */}
+                      <Box
+                        sx={{
+                          width: "30px",
+                          display: "flex",
+                          justifyContent: "center",
+                          alignItems: "center",
+                          color: "text.secondary",
+                          fontSize: "8px",
+                        }}
+                      >
+                        |
+                      </Box>
+
+                      {/* Last 3 columns (D-E-F) */}
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-around",
+                          flex: 1,
+                          gap: 1,
+                        }}
+                      >
+                        {columns.slice(3).map((col) => {
+                          const seat = seatGrid[row][col];
+                          const seatExists = seat !== null;
+                          const isBooked = seat?.isBooked || false;
+                          const isSelected =
+                            seatExists &&
+                            selectedSeats.some((s) => s.seatId === seat.seatId);
+
+                          return (
+                            <Tooltip
+                              key={`${row}${col}`}
+                              title={
+                                !seatExists
+                                  ? "No seat"
+                                  : isBooked
+                                    ? "Booked"
+                                    : `Seat ${row}${col}`
+                              }
+                            >
+                              <Box
+                                onClick={() =>
+                                  seatExists && handleSeatClick(seat)
+                                }
+                                sx={{
+                                  width: 40,
+                                  height: 40,
+                                  display: "flex",
+                                  justifyContent: "center",
+                                  alignItems: "center",
+                                  borderRadius: 1,
+                                  cursor:
+                                    !seatExists || isBooked
+                                      ? "not-allowed"
+                                      : "pointer",
+                                  bgcolor: !seatExists
+                                    ? "transparent"
+                                    : isBooked
+                                      ? "grey.300"
+                                      : isSelected
+                                        ? "primary.main"
+                                        : "success.light",
+                                  color: isSelected ? "white" : "text.primary",
+                                  transition: "all 0.2s",
+                                  border: !seatExists
+                                    ? "1px dashed grey.300"
+                                    : "none",
+                                  visibility: !seatExists
+                                    ? "hidden"
+                                    : "visible",
+                                  "&:hover": {
+                                    boxShadow:
+                                      !seatExists || isBooked ? "none" : 2,
+                                    transform:
+                                      !seatExists || isBooked
+                                        ? "none"
+                                        : "scale(1.05)",
+                                  },
+                                }}
+                              >
+                                {seatExists &&
+                                  (isSelected ? (
+                                    <CheckCircleOutlineIcon fontSize="small" />
+                                  ) : (
+                                    <AirlineSeatReclineNormalIcon fontSize="small" />
+                                  ))}
+                              </Box>
+                            </Tooltip>
+                          );
+                        })}
+                      </Box>
                     </Box>
                   </Box>
                 ))}
+              </Box>
             </Box>
           </Grid>
         </Grid>
       </Paper>
 
-      {selectedSeat && (
-        <Box sx={{ textAlign: "center", width: "100%" }}>
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="h6">
-              Selected Seat: <strong>{selectedSeat.seatNumber}</strong>
-            </Typography>
-          </Box>
-          <Button
-            variant="contained"
-            size="large"
-            onClick={onConfirm}
-            disableElevation
-            sx={{ maxWidth: "300px", width: "100%" }}
+      {/* Fixed position booking info box */}
+      <Paper
+        elevation={3}
+        sx={{
+          position: "fixed",
+          bottom: "20px",
+          right: "20px",
+          maxWidth: "350px",
+          width: { xs: "calc(100% - 40px)", sm: "350px" },
+          p: 2,
+          borderRadius: 2,
+          zIndex: 1000,
+          display: "flex",
+          flexDirection: "column",
+          gap: 1.5,
+          boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.15)",
+          bgcolor: "background.paper",
+          transition: "all 0.3s ease",
+        }}
+      >
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <Typography variant="h6" component="div" sx={{ fontWeight: "bold" }}>
+            Selected Seats
+          </Typography>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              bgcolor: "primary.light",
+              color: "primary.contrastText",
+              px: 1,
+              py: 0.5,
+              borderRadius: 1,
+              fontSize: "0.875rem",
+              fontWeight: "medium",
+            }}
           >
-            Confirm Booking
-          </Button>
+            {selectedSeatCount} / {passengerCount}
+          </Box>
         </Box>
-      )}
+
+        {selectedSeats.length > 0 ? (
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+            {selectedSeats.map((seat) => (
+              <Box
+                key={seat.seatId}
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  bgcolor: "primary.main",
+                  color: "white",
+                  borderRadius: 1,
+                  py: 0.5,
+                  px: 1,
+                  fontWeight: "medium",
+                  fontSize: "0.875rem",
+                }}
+              >
+                {seat.seatNumber}
+              </Box>
+            ))}
+          </Box>
+        ) : (
+          <Typography variant="body2" color="text.secondary">
+            Please select {passengerCount} seat(s) to continue
+          </Typography>
+        )}
+
+        {selectedSeatCount < passengerCount && (
+          <Typography color="warning.main" variant="body2">
+            {passengerCount - selectedSeatCount} more seat(s) needed
+          </Typography>
+        )}
+
+        <Button
+          variant="contained"
+          onClick={onConfirm}
+          disableElevation
+          disabled={selectedSeatCount < passengerCount}
+          sx={{
+            fontWeight: "bold",
+            py: 1,
+          }}
+          fullWidth
+        >
+          Confirm Booking
+        </Button>
+      </Paper>
     </Paper>
   );
 };

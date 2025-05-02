@@ -1,6 +1,8 @@
 -- Users Table
 CREATE TABLE Users (
     UserID SERIAL PRIMARY KEY,
+    FirstName VARCHAR(50) NOT NULL,
+    LastName VARCHAR(50) NOT NULL,
     Username VARCHAR(50) NOT NULL UNIQUE,
     PasswordHash VARCHAR(255) NOT NULL,
     Email VARCHAR(100),

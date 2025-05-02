@@ -11,6 +11,7 @@ import {
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { loadTestDataSequelize } from "./loadTestData.js";
 
 // Get directory name for ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -82,16 +83,29 @@ export const createTables = async (): Promise<void> => {
   }
 };
 
-// Function to load test data into the database
-export const loadTestData = async (): Promise<void> => {
+// Function to load test data into the database using SQL script (legacy method)
+export const loadTestDataSql = async (): Promise<void> => {
   try {
     await testConnection();
-    console.log("Loading test data...");
+    console.log("Loading test data using SQL script...");
 
     // Execute the loadTestData.sql script that contains sample data
     await executeSqlFile("loadTestData.sql");
 
     console.log("Test data loaded successfully");
+  } catch (error) {
+    console.error("Failed to load test data:", error);
+    throw error;
+  }
+};
+
+// Function to load test data using Sequelize models (new method)
+export const loadTestData = async (): Promise<void> => {
+  try {
+    await testConnection();
+
+    // Use the new Sequelize-based test data loading function
+    await loadTestDataSequelize();
   } catch (error) {
     console.error("Failed to load test data:", error);
     throw error;
@@ -107,7 +121,7 @@ export const resetDatabaseWithTestData = async (): Promise<void> => {
     // Then create tables using Sequelize
     await createTables();
 
-    // Finally load test data
+    // Finally load test data using Sequelize
     await loadTestData();
 
     console.log("Database reset with test data completed successfully");

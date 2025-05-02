@@ -1,8 +1,11 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import cookieParser from "cookie-parser";
 import flightRoutes from "./routes/flightRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
+import airportRoutes from "./routes/airportRoutes.js";
+import reservationRoutes from "./routes/reservationRoutes.js";
 import { testConnection } from "./db/connection.js";
 import { initializeDatabase } from "./db/initModels.js";
 
@@ -21,6 +24,7 @@ app.use(
 );
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser()); // Add cookie parser middleware
 
 // Initialize database
 try {
@@ -39,6 +43,8 @@ try {
 // Define routes
 app.use("/api/flights", flightRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/airports", airportRoutes);
+app.use("/api/reservations", reservationRoutes);
 
 // Health check endpoint
 app.get("/health", (_req, res) => {

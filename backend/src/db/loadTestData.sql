@@ -2,17 +2,17 @@
 -- This script assumes tables already exist and are empty
 
 -- Sample Users (PasswordHash is 'password' for all users, properly hashed with Argon2)
-INSERT INTO "Users" ("Username", "PasswordHash", "Email", "Admin", "createdAt", "updatedAt") VALUES
-('admin', '$argon2id$v=19$m=19456,t=2,p=1$dQ4LdsBJ8BfVtYDXeFlusQ$U47hkgO0OAOzRdZBAq9+TqIFSchcvyXJoplapcYSGD4', 'admin@flyair.com', TRUE, NOW(), NOW()),
-('john_doe', '$argon2id$v=19$m=19456,t=2,p=1$84B2+REaP5PeK7P4wxjNOA$/e+YIlrMXU7k6zISs95i8BywA3uYq1E5DfAE5Xkmba0', 'john.doe@example.com', FALSE, NOW(), NOW()),
-('jane_smith', '$argon2id$v=19$m=19456,t=2,p=1$AgdPAnCU+EYh2f/XGl8BCA$jqcvkHtfee8MvBsC1muLIPos/KYB665MXvSv3dRCjeQ', 'jane.smith@example.com', FALSE, NOW(), NOW()),
-('robert_johnson', '$argon2id$v=19$m=19456,t=2,p=1$Bx+CfvF6HRkI87kPp6DNdA$SVOIFLVe76C41Qy96rrGArAX09kMDi53uZNkzfm2IDM', 'robert.johnson@example.com', FALSE, NOW(), NOW()),
-('susan_williams', '$argon2id$v=19$m=19456,t=2,p=1$mRYYMsI5qFF5dTluPOt+IA$2S62tQoP+rkFKddeAgA69C+SyCTHe0gOyI+uO9CIYv4', 'susan.williams@example.com', FALSE, NOW(), NOW()),
-('michael_brown', '$argon2id$v=19$m=19456,t=2,p=1$KEDxwzIFlz7F4ttz+33ylA$7540qwD2joTap0S4HLzQmK1Svzc+hGR32RU3+Ibmigc', 'michael.brown@example.com', FALSE, NOW(), NOW()),
-('emily_davis', '$argon2id$v=19$m=19456,t=2,p=1$Mmr5e8NdskLa+juJZiawLg$wEE7QfauV3XUIyZiJhu0AZVoxMu/q0gMBOGt1eeOWEQ', 'emily.davis@example.com', FALSE, NOW(), NOW()),
-('david_miller', '$argon2id$v=19$m=19456,t=2,p=1$mhDaW6e0qszqALBrQvNdRw$Mcbwp5hP3s7YHO1m/bO4XRxKkJp7M/baH58Z7Se4Q8Y', 'david.miller@example.com', FALSE, NOW(), NOW()),
-('lisa_wilson', '$argon2id$v=19$m=19456,t=2,p=1$eZp4PEiI6ATNjMS1pBGlQA$eyFdnN8tUaFJER9oRq8QEc4e/W6n0pkIhYAt00x7ABw', 'lisa.wilson@example.com', FALSE, NOW(), NOW()),
-('james_taylor', '$argon2id$v=19$m=19456,t=2,p=1$1gp/FhiRWzHApvUWrFsSEA$dThB+UYcjIzl640XYrj398tT63eiVTwDpZ3HIrXE10o', 'james.taylor@example.com', FALSE, NOW(), NOW());
+INSERT INTO "Users" ("Username", "PasswordHash", "Email", "FirstName", "LastName", "Admin", "createdAt", "updatedAt") VALUES
+('admin', '$argon2id$v=19$m=19456,t=2,p=1$dQ4LdsBJ8BfVtYDXeFlusQ$U47hkgO0OAOzRdZBAq9+TqIFSchcvyXJoplapcYSGD4', 'admin@flyair.com', 'System', 'Admin', TRUE, NOW(), NOW()),
+('john_doe', '$argon2id$v=19$m=19456,t=2,p=1$84B2+REaP5PeK7P4wxjNOA$/e+YIlrMXU7k6zISs95i8BywA3uYq1E5DfAE5Xkmba0', 'john.doe@example.com', 'John', 'Doe', FALSE, NOW(), NOW()),
+('jane_smith', '$argon2id$v=19$m=19456,t=2,p=1$AgdPAnCU+EYh2f/XGl8BCA$jqcvkHtfee8MvBsC1muLIPos/KYB665MXvSv3dRCjeQ', 'jane.smith@example.com', 'Jane', 'Smith', FALSE, NOW(), NOW()),
+('robert_johnson', '$argon2id$v=19$m=19456,t=2,p=1$Bx+CfvF6HRkI87kPp6DNdA$SVOIFLVe76C41Qy96rrGArAX09kMDi53uZNkzfm2IDM', 'robert.johnson@example.com', 'Robert', 'Johnson', FALSE, NOW(), NOW()),
+('susan_williams', '$argon2id$v=19$m=19456,t=2,p=1$mRYYMsI5qFF5dTluPOt+IA$2S62tQoP+rkFKddeAgA69C+SyCTHe0gOyI+uO9CIYv4', 'susan.williams@example.com', 'Susan', 'Williams', FALSE, NOW(), NOW()),
+('michael_brown', '$argon2id$v=19$m=19456,t=2,p=1$KEDxwzIFlz7F4ttz+33ylA$7540qwD2joTap0S4HLzQmK1Svzc+hGR32RU3+Ibmigc', 'michael.brown@example.com', 'Michael', 'Brown', FALSE, NOW(), NOW()),
+('emily_davis', '$argon2id$v=19$m=19456,t=2,p=1$Mmr5e8NdskLa+juJZiawLg$wEE7QfauV3XUIyZiJhu0AZVoxMu/q0gMBOGt1eeOWEQ', 'emily.davis@example.com', 'Emily', 'Davis', FALSE, NOW(), NOW()),
+('david_miller', '$argon2id$v=19$m=19456,t=2,p=1$mhDaW6e0qszqALBrQvNdRw$Mcbwp5hP3s7YHO1m/bO4XRxKkJp7M/baH58Z7Se4Q8Y', 'david.miller@example.com', 'David', 'Miller', FALSE, NOW(), NOW()),
+('lisa_wilson', '$argon2id$v=19$m=19456,t=2,p=1$eZp4PEiI6ATNjMS1pBGlQA$eyFdnN8tUaFJER9oRq8QEc4e/W6n0pkIhYAt00x7ABw', 'lisa.wilson@example.com', 'Lisa', 'Wilson', FALSE, NOW(), NOW()),
+('james_taylor', '$argon2id$v=19$m=19456,t=2,p=1$1gp/FhiRWzHApvUWrFsSEA$dThB+UYcjIzl640XYrj398tT63eiVTwDpZ3HIrXE10o', 'james.taylor@example.com', 'James', 'Taylor', FALSE, NOW(), NOW());
 
 -- Sample Airports
 INSERT INTO "Airports" ("Code", "Name", "City", "Country", "createdAt", "updatedAt") VALUES
@@ -45,48 +45,122 @@ INSERT INTO "Aircraft" ("Model", "TotalSeats", "createdAt", "updatedAt") VALUES
 ('Embraer E190', 114, NOW(), NOW()),
 ('Boeing 737', 189, NOW(), NOW());
 
--- Sample Flights (dates are in the future from April 28, 2025)
-INSERT INTO "Flights" ("AircraftID", "OriginAirportID", "DestinationAirportID", "DepartureTime", "ArrivalTime", "createdAt", "updatedAt") VALUES
--- JFK to LAX (New York to Los Angeles)
-(1, 1, 2, '2025-05-01 08:00:00', '2025-05-01 11:30:00', NOW(), NOW()),
-(3, 1, 2, '2025-05-02 10:00:00', '2025-05-02 13:30:00', NOW(), NOW()),
-(5, 1, 2, '2025-05-03 14:00:00', '2025-05-03 17:30:00', NOW(), NOW()),
--- LAX to JFK (Los Angeles to New York)
-(1, 2, 1, '2025-05-01 13:00:00', '2025-05-01 21:30:00', NOW(), NOW()),
-(2, 2, 1, '2025-05-02 15:00:00', '2025-05-02 23:30:00', NOW(), NOW()),
--- JFK to LHR (New York to London)
-(6, 1, 3, '2025-05-05 20:00:00', '2025-05-06 08:00:00', NOW(), NOW()),
-(7, 1, 3, '2025-05-06 22:00:00', '2025-05-07 10:00:00', NOW(), NOW()),
--- LHR to JFK (London to New York)
-(6, 3, 1, '2025-05-07 10:30:00', '2025-05-07 13:30:00', NOW(), NOW()),
-(7, 3, 1, '2025-05-08 12:30:00', '2025-05-08 15:30:00', NOW(), NOW()),
--- CDG to LHR (Paris to London)
-(4, 4, 3, '2025-05-10 09:00:00', '2025-05-10 09:45:00', NOW(), NOW()),
-(8, 4, 3, '2025-05-11 11:00:00', '2025-05-11 11:45:00', NOW(), NOW()),
--- LHR to CDG (London to Paris)
-(4, 3, 4, '2025-05-10 11:00:00', '2025-05-10 11:45:00', NOW(), NOW()),
-(8, 3, 4, '2025-05-11 13:00:00', '2025-05-11 13:45:00', NOW(), NOW()),
--- HND to PEK (Tokyo to Beijing)
-(2, 5, 14, '2025-05-15 10:00:00', '2025-05-15 13:00:00', NOW(), NOW()),
--- PEK to HND (Beijing to Tokyo)
-(2, 14, 5, '2025-05-16 14:00:00', '2025-05-16 17:00:00', NOW(), NOW()),
--- SYD to SIN (Sydney to Singapore)
-(3, 6, 8, '2025-05-20 23:00:00', '2025-05-21 05:00:00', NOW(), NOW()),
--- SIN to SYD (Singapore to Sydney)
-(3, 8, 6, '2025-05-22 01:00:00', '2025-05-22 07:00:00', NOW(), NOW()),
--- DXB to AMS (Dubai to Amsterdam)
-(5, 7, 9, '2025-05-25 02:00:00', '2025-05-25 07:00:00', NOW(), NOW()),
--- AMS to DXB (Amsterdam to Dubai)
-(5, 9, 7, '2025-05-26 09:00:00', '2025-05-26 14:00:00', NOW(), NOW()),
--- FRA to MAD (Frankfurt to Madrid)
-(4, 10, 11, '2025-06-01 14:00:00', '2025-06-01 16:30:00', NOW(), NOW()),
--- MAD to FRA (Madrid to Frankfurt)
-(4, 11, 10, '2025-06-02 17:30:00', '2025-06-02 20:00:00', NOW(), NOW());
+-- Initialize aircraft positions (each aircraft starts at a random airport)
+CREATE TEMPORARY TABLE AircraftPositions (
+    AircraftID INTEGER PRIMARY KEY,
+    CurrentAirportID INTEGER,
+    AvailableFrom TIMESTAMP
+);
+
+INSERT INTO AircraftPositions (AircraftID, CurrentAirportID, AvailableFrom)
+SELECT 
+    a."AircraftID", 
+    airports."AirportID",
+    '2025-05-01 06:00:00'::TIMESTAMP -- All aircraft start available from May 1, 2025 at 6 AM
+FROM "Aircraft" a
+CROSS JOIN (
+    SELECT "AirportID" FROM "Airports" ORDER BY RANDOM() LIMIT 1
+) airports;
+
+-- Generate realistic flight schedule for 14 days (May 1-14, 2025)
+DO $$
+DECLARE
+    start_date DATE := '2025-05-01';
+    end_date DATE := '2025-05-14';
+    current_date DATE;
+    origin_airport RECORD;
+    destination_airport RECORD;
+    aircraft RECORD;
+    flight_duration INTERVAL;
+    departure_time TIMESTAMP;
+    arrival_time TIMESTAMP;
+    turnaround_time INTERVAL := '1 hour'::INTERVAL; -- Time needed between flights for the same aircraft
+    min_daily_flights INTEGER := 3; -- Minimum number of city pairs per day
+    max_daily_flights INTEGER := 6; -- Maximum number of city pairs per day
+    daily_flights INTEGER;
+    flight_id INTEGER;
+BEGIN
+    -- Loop through each day in the schedule period
+    current_date := start_date;
+    WHILE current_date <= end_date LOOP
+        -- Loop through each aircraft to schedule its flights for the day
+        FOR aircraft IN SELECT ap.AircraftID, ap.CurrentAirportID, ap.AvailableFrom, a."Model"
+                      FROM AircraftPositions ap
+                      JOIN "Aircraft" a ON ap.AircraftID = a."AircraftID"
+        LOOP
+            -- Keep scheduling flights until the aircraft runs out of time in the day
+            WHILE (aircraft.AvailableFrom AT TIME ZONE 'UTC')::DATE = current_date 
+                  AND (aircraft.AvailableFrom + INTERVAL '2 hours') < (current_date + INTERVAL '1 day')
+            LOOP
+                -- Find a random destination airport (different from current location)
+                SELECT * INTO destination_airport 
+                FROM "Airports"
+                WHERE "AirportID" != aircraft.CurrentAirportID
+                ORDER BY RANDOM()
+                LIMIT 1;
+                
+                IF NOT FOUND THEN
+                    EXIT; -- No valid destination found
+                END IF;
+                
+                -- Get origin airport details
+                SELECT * INTO origin_airport
+                FROM "Airports"
+                WHERE "AirportID" = aircraft.CurrentAirportID;
+                
+                -- Calculate a realistic flight duration based on airports
+                -- In a real system, this would be more sophisticated based on distance
+                -- Here we're using a simplified approach with random duration between 1 and 10 hours
+                flight_duration := (RANDOM() * 9 + 1) * INTERVAL '1 hour';
+                
+                -- Set departure time (from when aircraft is available plus minimum ground time)
+                departure_time := aircraft.AvailableFrom + (RANDOM() * 30 * INTERVAL '1 minute');
+                arrival_time := departure_time + flight_duration;
+                
+                -- Create the flight
+                INSERT INTO "Flights" (
+                    "AircraftID", "OriginAirportID", "DestinationAirportID", 
+                    "DepartureTime", "ArrivalTime", "createdAt", "updatedAt"
+                )
+                VALUES (
+                    aircraft.AircraftID, aircraft.CurrentAirportID, destination_airport."AirportID",
+                    departure_time, arrival_time, NOW(), NOW()
+                )
+                RETURNING "FlightID" INTO flight_id;
+                
+                -- Update aircraft position to the new airport and availability time
+                UPDATE AircraftPositions 
+                SET 
+                    CurrentAirportID = destination_airport."AirportID",
+                    AvailableFrom = arrival_time + turnaround_time
+                WHERE AircraftID = aircraft.AircraftID;
+                
+                -- Re-fetch aircraft record with updated availability
+                SELECT ap.AircraftID, ap.CurrentAirportID, ap.AvailableFrom, a."Model"
+                INTO aircraft
+                FROM AircraftPositions ap
+                JOIN "Aircraft" a ON ap.AircraftID = a."AircraftID"
+                WHERE ap.AircraftID = aircraft.AircraftID;
+            END LOOP;
+            
+            -- If aircraft is done for the day, make it available early next morning
+            IF (aircraft.AvailableFrom AT TIME ZONE 'UTC')::DATE > current_date THEN
+                -- Aircraft is already scheduled into the next day, leave it as is
+                NULL;
+            ELSE
+                -- Aircraft has finished for the day, make it available next morning at 6 AM
+                UPDATE AircraftPositions 
+                SET AvailableFrom = (current_date + INTERVAL '1 day' + INTERVAL '6 hours')
+                WHERE AircraftID = aircraft.AircraftID;
+            END IF;
+        END LOOP;
+        
+        -- Move to next day
+        current_date := current_date + INTERVAL '1 day';
+    END LOOP;
+END $$;
 
 -- Generate seats for each flight
--- This procedure will auto-generate seats for all flights
-
--- First, declare a function to generate seat letters (A-F for economy class planes)
 DO $$
 DECLARE
     flight_rec RECORD;

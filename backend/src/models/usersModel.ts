@@ -6,6 +6,8 @@ import Reservation from "./reservationModel.js";
 // Define User attributes interface
 interface UserAttributes {
   UserID: number;
+  FirstName: string;
+  LastName: string;
   Username: string;
   PasswordHash: string;
   Email: string | null;
@@ -23,6 +25,8 @@ class User
 {
   // Using declare instead of public to avoid shadowing Sequelize's getters/setters
   declare UserID: number;
+  declare FirstName: string;
+  declare LastName: string;
   declare Username: string;
   declare PasswordHash: string;
   declare Email: string | null;
@@ -46,6 +50,11 @@ class User
       return false;
     }
   }
+
+  // Get the full name as a computed property
+  get fullName(): string {
+    return `${this.FirstName} ${this.LastName}`;
+  }
 }
 
 // Initialize User model
@@ -55,6 +64,20 @@ User.init(
       type: DataTypes.INTEGER,
       autoIncrement: true,
       primaryKey: true,
+    },
+    FirstName: {
+      type: DataTypes.STRING(50),
+      allowNull: false,
+      validate: {
+        notEmpty: { msg: "First name cannot be empty" },
+      },
+    },
+    LastName: {
+      type: DataTypes.STRING(50),
+      allowNull: false,
+      validate: {
+        notEmpty: { msg: "Last name cannot be empty" },
+      },
     },
     Username: {
       type: DataTypes.STRING(50),

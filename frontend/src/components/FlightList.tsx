@@ -14,7 +14,7 @@ import {
 import FlightTakeoffIcon from "@mui/icons-material/FlightTakeoff";
 import FlightLandIcon from "@mui/icons-material/FlightLand";
 import AirplaneTicketIcon from "@mui/icons-material/AirplaneTicket";
-import { Flight, formatDateTime } from "../types/flightTypes";
+import { Flight, formatDateTime, formatDuration } from "../types/flightTypes";
 
 type FlightListProps = {
   flights: Flight[];
@@ -23,6 +23,7 @@ type FlightListProps = {
   departureDate: string;
   onSelectFlight: (flight: Flight) => void;
   onModifySearch: () => void;
+  loading?: boolean;
 };
 
 const FlightList: React.FC<FlightListProps> = ({
@@ -32,20 +33,11 @@ const FlightList: React.FC<FlightListProps> = ({
   departureDate,
   onSelectFlight,
   onModifySearch,
+  loading = false,
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const isTablet = useMediaQuery(theme.breakpoints.down("md"));
-
-  // Calculate flight duration in hours and minutes
-  const calculateDuration = (departureTime: string, arrivalTime: string) => {
-    const departure = new Date(departureTime);
-    const arrival = new Date(arrivalTime);
-    const durationMs = arrival.getTime() - departure.getTime();
-    const hours = Math.floor(durationMs / (1000 * 60 * 60));
-    const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
-    return `${hours}h ${minutes}m`;
-  };
 
   return (
     <Paper
@@ -88,7 +80,14 @@ const FlightList: React.FC<FlightListProps> = ({
         </Typography>
       </Box>
 
-      {flights.length === 0 ? (
+      {loading ? (
+        <Paper
+          elevation={0}
+          sx={{ p: 3, textAlign: "center", border: "1px dashed #ccc" }}
+        >
+          <Typography>Loading available flights...</Typography>
+        </Paper>
+      ) : flights.length === 0 ? (
         <Paper
           elevation={0}
           sx={{ p: 3, textAlign: "center", border: "1px dashed #ccc" }}
@@ -181,7 +180,7 @@ const FlightList: React.FC<FlightListProps> = ({
                         color="text.secondary"
                         sx={{ mb: 0.5 }}
                       >
-                        {calculateDuration(
+                        {formatDuration(
                           flight.departureTime,
                           flight.arrivalTime
                         )}
