@@ -1,5 +1,8 @@
 import express from "express";
-import { createReservation } from "../controllers/userController.js";
+import {
+  createReservation,
+  deleteReservation,
+} from "../controllers/reservationController.js";
 import { authenticateToken } from "../middleware/auth.js";
 
 const router = express.Router();
@@ -10,5 +13,12 @@ const router = express.Router();
  * @access  Private - Only authenticated users can create reservations
  */
 router.post("/", authenticateToken, createReservation);
+
+/**
+ * @route   DELETE /api/reservations/:id
+ * @desc    Delete a reservation
+ * @access  Private - Only authenticated users can delete reservations
+ */
+router.delete("/:id", authenticateToken, deleteReservation);
 
 export default router;

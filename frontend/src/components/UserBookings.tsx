@@ -24,6 +24,10 @@ import { getUserReservations, formatDateTime } from "../services/api";
 import { ReservationStatus } from "../types/shared";
 import { ReservationAttributes } from "../../../backend/src/types/modelDTOs";
 import Pagination from "@mui/material/Pagination";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
 
 const BOOKINGS_PER_PAGE = 10;
 
@@ -34,6 +38,10 @@ const UserBookings: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [authModalOpen, setAuthModalOpen] = useState<boolean>(false);
   const [page, setPage] = useState(1);
+  const [selectedReservation, setSelectedReservation] =
+    useState<ReservationAttributes | null>(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const totalPages = Math.ceil(reservations.length / BOOKINGS_PER_PAGE);
   const paginatedReservations = reservations.slice(
     (page - 1) * BOOKINGS_PER_PAGE,
@@ -190,6 +198,11 @@ const UserBookings: React.FC = () => {
                     transform: "translateY(-4px)",
                     boxShadow: 6,
                   },
+                  cursor: "pointer",
+                }}
+                onClick={() => {
+                  setSelectedReservation(reservation);
+                  setDeleteModalOpen(true);
                 }}
               >
                 <Box
@@ -464,6 +477,71 @@ const UserBookings: React.FC = () => {
         mode="login"
         onSuccess={handleAuthSuccess}
       />
+
+      {/* Delete Reservation Modal */}
+      <Dialog open={deleteModalOpen} onClose={() => setDeleteModalOpen(false)}>
+        <DialogTitle>Delete Reservation</DialogTitle>
+        <DialogContent>
+          {selectedReservation && (
+            <Box>
+              <Typography gutterBottom>
+                Are you sure you want to delete this reservation?
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Booking Reference: FLY-{selectedReservation.ReservationID}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Flight: FL-{selectedReservation.flight?.FlightID}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Seat: {selectedReservation.seat?.SeatNumber}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Departure:{" "}
+                {selectedReservation.flight?.DepartureTime
+                  ? formatDateTime(
+                      selectedReservation.flight.DepartureTime.toISOString()
+                    )
+                  : "-"}
+              </Typography>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteModalOpen(false)} disabled={deleting}>
+            Cancel
+          </Button>
+          <Button
+            color="error"
+            variant="contained"
+            disabled={deleting}
+            onClick={async () => {
+              if (!selectedReservation) return;
+              setDeleting(true);
+              try {
+                await import("../services/api").then((api) =>
+                  api.deleteReservation(selectedReservation.ReservationID!)
+                );
+                setDeleteModalOpen(false);
+                setSelectedReservation(null);
+                // Refresh reservations
+                if (user) {
+                  const userReservations = await import("../services/api").then(
+                    (api) => api.getUserReservations(user.UserID)
+                  );
+                  setReservations(userReservations as ReservationAttributes[]);
+                }
+              } catch {
+                alert("Failed to delete reservation.");
+              } finally {
+                setDeleting(false);
+              }
+            }}
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };

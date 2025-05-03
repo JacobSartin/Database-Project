@@ -166,6 +166,13 @@ export const getUserReservations = async (UserID: number) => {
     : [];
 };
 
+export const deleteReservation = async (reservationId: number) => {
+  return fetchJson(`${API_BASE_URL}/reservations/${reservationId}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+};
+
 export { formatDateTime, formatDuration };
 
 export default {
@@ -179,4 +186,5 @@ export default {
   fetchAvailableSeats,
   createReservation,
   getUserReservations,
+  deleteReservation,
 };
