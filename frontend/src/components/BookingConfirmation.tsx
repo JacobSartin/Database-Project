@@ -16,15 +16,18 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import FlightTakeoffIcon from "@mui/icons-material/FlightTakeoff";
 import AirlineSeatReclineNormalIcon from "@mui/icons-material/AirlineSeatReclineNormal";
 import ConfirmationNumberIcon from "@mui/icons-material/ConfirmationNumber";
-import {
-  FlightAttributes,
-  SeatAttributes,
-} from "../../../backend/src/types/modelDTOs";
 import { formatDateTime } from "../types/flightTypes";
+import {
+  FlightResponse,
+  SeatResponse,
+} from "../../../backend/src/types/requestTypes";
 
 type BookingConfirmationProps = {
-  flight: FlightAttributes;
-  seats: SeatAttributes[];
+  flight: Omit<FlightResponse, "DepartureTime" | "ArrivalTime"> & {
+    DepartureTime: Date;
+    ArrivalTime: Date;
+  };
+  seats: SeatResponse[];
   bookingId?: string;
   onBookAnother: () => void;
 };
@@ -135,7 +138,7 @@ const BookingConfirmation: React.FC<BookingConfirmationProps> = ({
               Date
             </Typography>
             <Typography variant="body1" gutterBottom>
-              {new Date(flight.DepartureTime).toLocaleDateString(undefined, {
+              {flight.DepartureTime.toLocaleDateString(undefined, {
                 weekday: "long",
                 year: "numeric",
                 month: "long",
@@ -147,7 +150,7 @@ const BookingConfirmation: React.FC<BookingConfirmationProps> = ({
               Departure
             </Typography>
             <Typography variant="body1" gutterBottom>
-              {formatDateTime(flight.DepartureTime.toLocaleTimeString())}
+              {formatDateTime(flight.DepartureTime)}
             </Typography>
           </Grid>
 
@@ -170,7 +173,7 @@ const BookingConfirmation: React.FC<BookingConfirmationProps> = ({
               Arrival
             </Typography>
             <Typography variant="body1" gutterBottom>
-              {formatDateTime(flight.ArrivalTime.toLocaleDateString())}
+              {formatDateTime(flight.ArrivalTime)}
             </Typography>
           </Grid>
         </Grid>

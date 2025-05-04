@@ -13,15 +13,23 @@ import {
 import FlightTakeoffIcon from "@mui/icons-material/FlightTakeoff";
 import FlightLandIcon from "@mui/icons-material/FlightLand";
 import AirplaneTicketIcon from "@mui/icons-material/AirplaneTicket";
-import { FlightAttributes } from "../../../backend/src/types/modelDTOs";
-import { formatDateTime, formatDuration } from "../types/flightTypes";
+import { formatDateTime, formatDuration } from "../utils/formatUtils";
+import { FlightResponse } from "../../../backend/src/types/requestTypes";
 
 type FlightListProps = {
-  flights: FlightAttributes[];
+  flights: (Omit<FlightResponse, "DepartureTime" | "ArrivalTime"> & {
+    DepartureTime: Date;
+    ArrivalTime: Date;
+  })[];
   sourceAirport: string;
   destinationAirport: string;
-  departureDate: string;
-  onSelectFlight: (flight: FlightAttributes) => void;
+  departureDate: Date;
+  onSelectFlight: (
+    flight: Omit<FlightResponse, "DepartureTime" | "ArrivalTime"> & {
+      DepartureTime: Date;
+      ArrivalTime: Date;
+    }
+  ) => void;
   onModifySearch: () => void;
   loading?: boolean;
 };
@@ -76,7 +84,7 @@ const FlightList: React.FC<FlightListProps> = ({
       <Box sx={{ mb: 2 }}>
         <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
           {sourceAirport} to {destinationAirport} •{" "}
-          {new Date(departureDate).toISOString()}
+          {departureDate.toLocaleDateString()}
         </Typography>
       </Box>
 
@@ -170,11 +178,7 @@ const FlightList: React.FC<FlightListProps> = ({
                         {flight.originAirport?.Code ?? ""}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        {
-                          formatDateTime(
-                            flight.DepartureTime.toISOString()
-                          ).split(",")[1]
-                        }
+                        {formatDateTime(flight.DepartureTime).split(",")[1]}
                       </Typography>
                     </Box>
 
@@ -193,8 +197,8 @@ const FlightList: React.FC<FlightListProps> = ({
                         sx={{ mb: 0.5 }}
                       >
                         {formatDuration(
-                          flight.DepartureTime.toISOString(),
-                          flight.ArrivalTime.toISOString()
+                          flight.DepartureTime,
+                          flight.ArrivalTime
                         )}
                       </Typography>
                       <Box sx={{ position: "relative", mx: 2 }}>
@@ -235,11 +239,7 @@ const FlightList: React.FC<FlightListProps> = ({
                         {flight.destinationAirport?.Code ?? ""}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        {
-                          formatDateTime(
-                            flight.ArrivalTime.toISOString()
-                          ).split(",")[1]
-                        }
+                        {formatDateTime(flight.ArrivalTime).split(",")[1]}
                       </Typography>
                     </Box>
                   </Box>
@@ -247,12 +247,10 @@ const FlightList: React.FC<FlightListProps> = ({
                   {!isMobile && (
                     <>
                       <Typography variant="body2" color="text.secondary">
-                        Departure:{" "}
-                        {formatDateTime(flight.DepartureTime.toISOString())}
+                        Departure: {formatDateTime(flight.DepartureTime)}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        Arrival:{" "}
-                        {formatDateTime(flight.ArrivalTime.toISOString())}
+                        Arrival: {formatDateTime(flight.ArrivalTime)}
                       </Typography>
                     </>
                   )}

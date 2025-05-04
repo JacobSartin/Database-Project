@@ -10,17 +10,20 @@ import {
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import AirlineSeatReclineNormalIcon from "@mui/icons-material/AirlineSeatReclineNormal";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
-import {
-  FlightAttributes,
-  SeatAttributes,
-} from "../../../backend/src/types/modelDTOs";
 import { formatDateTime } from "../types/flightTypes";
+import {
+  FlightResponse,
+  SeatResponse,
+} from "../../../backend/src/types/requestTypes";
 
 type SeatMapProps = {
-  flight: FlightAttributes;
-  seats: SeatAttributes[];
-  selectedSeats: SeatAttributes[];
-  onSeatSelect: (seat: SeatAttributes) => void;
+  flight: Omit<FlightResponse, "DepartureTime" | "ArrivalTime"> & {
+    DepartureTime: Date;
+    ArrivalTime: Date;
+  };
+  seats: SeatResponse[];
+  selectedSeats: SeatResponse[];
+  onSeatSelect: (seat: SeatResponse) => void;
   onBack: () => void;
   onConfirm: () => void;
   loading?: boolean;
@@ -41,7 +44,7 @@ const SeatMap: React.FC<SeatMapProps> = ({
   // This helps visualize a proper airplane layout
   const organizeSeatsIntoGrid = () => {
     const seatGrid: {
-      [row: string]: { [col: string]: SeatAttributes | null };
+      [row: string]: { [col: string]: SeatResponse | null };
     } = {};
     const columns = ["A", "B", "C", "D", "E", "F"];
 
@@ -87,7 +90,7 @@ const SeatMap: React.FC<SeatMapProps> = ({
 
   const { seatGrid, rows, columns } = organizeSeatsIntoGrid();
 
-  const handleSeatClick = (seat: SeatAttributes | null) => {
+  const handleSeatClick = (seat: SeatResponse | null) => {
     if (seat && !seat.IsBooked) {
       onSeatSelect(seat);
     }
@@ -156,7 +159,7 @@ const SeatMap: React.FC<SeatMapProps> = ({
         <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
           {flight.originAirport?.Code ?? ""} to{" "}
           {flight.destinationAirport?.Code ?? ""} •{" "}
-          {formatDateTime(flight.DepartureTime.toLocaleTimeString())}
+          {formatDateTime(flight.DepartureTime)}
         </Typography>
         <Typography variant="body2" color="text.secondary">
           Aircraft: {flight.aircraft?.Model || "-"}

@@ -7,10 +7,6 @@ import FlightList from "./FlightList";
 import SeatMap from "./SeatMap";
 import BookingConfirmation from "./BookingConfirmation";
 import AuthModal from "./AuthModal";
-import {
-  FlightAttributes,
-  SeatAttributes,
-} from "../../../backend/src/types/modelDTOs";
 import { AirportOption } from "../types/shared";
 import { useAuth } from "../context/AuthContext";
 import {
@@ -18,7 +14,10 @@ import {
   fetchAvailableSeats as apiFetchSeats,
   createReservation as apiCreateReservation,
 } from "../services/api";
-import { BookingResponse } from "../types/flightTypes";
+import {
+  FlightResponse,
+  SeatResponse,
+} from "../../../backend/src/types/requestTypes";
 
 const FlightBookingForm: React.FC = () => {
   const { isAuthenticated, user } = useAuth(); // Destructure user from useAuth
@@ -34,14 +33,21 @@ const FlightBookingForm: React.FC = () => {
   const [returnDate, setReturnDate] = useState<Date | null>(null);
   const [passengerCount, setPassengerCount] = useState<number>(1);
 
-  const [availableFlights, setAvailableFlights] = useState<FlightAttributes[]>(
-    []
-  );
-  const [selectedFlight, setSelectedFlight] = useState<FlightAttributes | null>(
-    null
-  );
-  const [availableSeats, setAvailableSeats] = useState<SeatAttributes[]>([]);
-  const [selectedSeats, setSelectedSeats] = useState<SeatAttributes[]>([]);
+  const [availableFlights, setAvailableFlights] = useState<
+    (Omit<FlightResponse, "DepartureTime" | "ArrivalTime"> & {
+      DepartureTime: Date;
+      ArrivalTime: Date;
+    })[]
+  >([]);
+  const [selectedFlight, setSelectedFlight] = useState<
+    | (Omit<FlightResponse, "DepartureTime" | "ArrivalTime"> & {
+        DepartureTime: Date;
+        ArrivalTime: Date;
+      })
+    | null
+  >(null);
+  const [availableSeats, setAvailableSeats] = useState<SeatResponse[]>([]);
+  const [selectedSeats, setSelectedSeats] = useState<SeatResponse[]>([]);
   const [seatMapLoading, setSeatMapLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -150,7 +156,12 @@ const FlightBookingForm: React.FC = () => {
   };
 
   // Handle flight selection
-  const handleFlightSelect = (flight: FlightAttributes) => {
+  const handleFlightSelect = (
+    flight: Omit<FlightResponse, "DepartureTime" | "ArrivalTime"> & {
+      DepartureTime: Date;
+      ArrivalTime: Date;
+    }
+  ) => {
     setSelectedFlight(flight);
     setSeatMapLoading(true);
     fetchAvailableSeats(flight.FlightID!);
@@ -166,7 +177,7 @@ const FlightBookingForm: React.FC = () => {
       // Use the actual API call
       const seats = await apiFetchSeats(flightId);
 
-      setAvailableSeats(seats as SeatAttributes[]);
+      setAvailableSeats(seats);
     } catch (error) {
       console.error("Error fetching seats:", error);
       setError("Failed to load seat map. Please try again.");
@@ -176,7 +187,7 @@ const FlightBookingForm: React.FC = () => {
   };
 
   // Updated to handle multiple seat selections
-  const handleSeatSelect = (seat: SeatAttributes) => {
+  const handleSeatSelect = (seat: SeatResponse) => {
     if (seat.IsBooked) return;
 
     setSelectedSeats((prevSelectedSeats) => {
@@ -247,13 +258,11 @@ const FlightBookingForm: React.FC = () => {
       );
 
       // Store the reservation responses which contain the reservation IDs
-      const bookingResponses = (await Promise.all(
-        bookingPromises
-      )) as BookingResponse[];
+      const bookingResponses = await Promise.all(bookingPromises);
 
       // Extract reservation IDs to a single string, joined by commas if multiple
       const reservationIds = bookingResponses
-        .map((response) => response.data?.ReservationID)
+        .map((response) => response.ReservationID)
         .filter((id) => id !== undefined)
         .join(",");
 
@@ -320,7 +329,7 @@ const FlightBookingForm: React.FC = () => {
             flights={availableFlights}
             sourceAirport={sourceAirport?.value || ""}
             destinationAirport={destinationAirport?.value || ""}
-            departureDate={departureDate ? departureDate.toISOString() : ""}
+            departureDate={departureDate ? departureDate : new Date()}
             onSelectFlight={handleFlightSelect}
             onModifySearch={() => setStep("search")}
             loading={loading}

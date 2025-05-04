@@ -18,6 +18,16 @@ export function createReservation(req: AuthRequest, res: Response): void {
     return;
   }
 
+  // Prevent admins from making reservations
+  if (req.user.isAdmin) {
+    const response: ApiResponse<null> = {
+      message: "Admins cannot make reservations",
+      error: "Admin users are not allowed to make reservations",
+    };
+    res.status(403).json(response);
+    return;
+  }
+
   const userId = req.user.id;
 
   if (!FlightID || !SeatID) {

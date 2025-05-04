@@ -7,6 +7,9 @@ import FlightBookingForm from "./components/FlightBookingForm";
 import UserBookings from "./components/UserBookings";
 import TopBar from "./components/TopBar";
 import { AuthProvider } from "./context/AuthContext";
+import AdminDashboard from "./components/admin/AdminDashboard";
+import AdminFlights from "./components/admin/AdminFlights";
+import FlightForm from "./components/admin/FlightForm";
 
 // Create a custom theme with fixed width issues
 const theme = createTheme({
@@ -130,6 +133,16 @@ createRoot(document.getElementById("root")!).render(
               <Routes>
                 <Route path="/" element={<FlightBookingForm />} />
                 <Route path="/bookings" element={<UserBookings />} />
+
+                {/* Admin routes */}
+                <Route path="/admin" element={<AdminDashboard />} />
+                <Route path="/admin/flights" element={<AdminFlights />} />
+                <Route path="/admin/flights/add" element={<FlightForm />} />
+                <Route
+                  path="/admin/flights/edit/:flightId"
+                  element={<FlightForm />}
+                />
+
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </Box>

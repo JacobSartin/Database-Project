@@ -20,9 +20,8 @@ import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import ConfirmationNumberIcon from "@mui/icons-material/ConfirmationNumber";
 import AuthModal from "./AuthModal";
 import { useAuth } from "../context/AuthContext";
-import { getUserReservations, formatDateTime } from "../services/api";
+import { getUserReservations, ConvertedReservation } from "../services/api";
 import { ReservationStatus } from "../types/shared";
-import { ReservationAttributes } from "../../../backend/src/types/modelDTOs";
 import Pagination from "@mui/material/Pagination";
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
@@ -32,14 +31,14 @@ import DialogActions from "@mui/material/DialogActions";
 const BOOKINGS_PER_PAGE = 10;
 
 const UserBookings: React.FC = () => {
-  const { user, isAuthenticated, loading: authLoading } = useAuth();
-  const [reservations, setReservations] = useState<ReservationAttributes[]>([]);
+  const { user, isAuthenticated, isAdmin, loading: authLoading } = useAuth();
+  const [reservations, setReservations] = useState<ConvertedReservation[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [authModalOpen, setAuthModalOpen] = useState<boolean>(false);
   const [page, setPage] = useState(1);
   const [selectedReservation, setSelectedReservation] =
-    useState<ReservationAttributes | null>(null);
+    useState<ConvertedReservation | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const totalPages = Math.ceil(reservations.length / BOOKINGS_PER_PAGE);
@@ -67,7 +66,7 @@ const UserBookings: React.FC = () => {
         if (user) {
           // Map the reservations to match ReservationAttributes type
           const userReservations = await getUserReservations(user.UserID);
-          setReservations(userReservations as ReservationAttributes[]);
+          setReservations(userReservations);
         }
       } catch (err) {
         console.error("Error fetching reservations:", err);
@@ -100,16 +99,6 @@ const UserBookings: React.FC = () => {
     }
   };
 
-  // Format reservation date for display
-  const formatBookingDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString(undefined, {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
-
   const handlePageChange = (
     _event: React.ChangeEvent<unknown>,
     value: number
@@ -126,6 +115,19 @@ const UserBookings: React.FC = () => {
         <Typography variant="h6" sx={{ mt: 2 }}>
           Checking authentication...
         </Typography>
+      </Container>
+    );
+  }
+
+  // If admin, do not show bookings UI
+  if (isAdmin) {
+    return (
+      <Container maxWidth="lg" sx={{ py: 6, textAlign: "center" }}>
+        <Alert severity="info" sx={{ mb: 3 }}>
+          <Typography variant="h6">
+            Admin users do not have bookings.
+          </Typography>
+        </Alert>
       </Container>
     );
   }
@@ -356,9 +358,7 @@ const UserBookings: React.FC = () => {
                             </Typography>
                             <Typography variant="body1">
                               {reservation.flight?.DepartureTime
-                                ? formatDateTime(
-                                    reservation.flight.DepartureTime.toISOString()
-                                  )
+                                ? reservation.flight.DepartureTime.toLocaleString()
                                 : "-"}
                             </Typography>
                           </Box>
@@ -368,9 +368,7 @@ const UserBookings: React.FC = () => {
                             </Typography>
                             <Typography variant="body1">
                               {reservation.flight?.ArrivalTime
-                                ? formatDateTime(
-                                    reservation.flight.ArrivalTime.toISOString()
-                                  )
+                                ? reservation.flight.ArrivalTime.toLocaleString()
                                 : "-"}
                             </Typography>
                           </Box>
@@ -441,9 +439,7 @@ const UserBookings: React.FC = () => {
                           </Typography>
                           <Typography variant="body1" sx={{ mb: 1 }}>
                             {reservation.BookingTime
-                              ? formatBookingDate(
-                                  reservation.BookingTime.toISOString()
-                                )
+                              ? reservation.BookingTime.toLocaleString()
                               : "-"}
                           </Typography>
                         </Box>
@@ -499,9 +495,7 @@ const UserBookings: React.FC = () => {
               <Typography variant="body2" color="text.secondary">
                 Departure:{" "}
                 {selectedReservation.flight?.DepartureTime
-                  ? formatDateTime(
-                      selectedReservation.flight.DepartureTime.toISOString()
-                    )
+                  ? selectedReservation.flight.DepartureTime.toLocaleString()
                   : "-"}
               </Typography>
             </Box>
@@ -529,7 +523,7 @@ const UserBookings: React.FC = () => {
                   const userReservations = await import("../services/api").then(
                     (api) => api.getUserReservations(user.UserID)
                   );
-                  setReservations(userReservations as ReservationAttributes[]);
+                  setReservations(userReservations);
                 }
               } catch {
                 alert("Failed to delete reservation.");

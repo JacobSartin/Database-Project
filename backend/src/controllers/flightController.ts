@@ -9,6 +9,8 @@ import {
   FlightIdParams,
   SearchFlightQuery,
   ApiResponse,
+  CreateFlightBody,
+  UpdateFlightBody,
 } from "../types/requestTypes.js";
 
 /**
@@ -16,18 +18,41 @@ import {
  * @returns List of all flights with related data
  */
 export function getFlights(req: Request, res: Response): void {
-  Flight.findAll({
-    include: [
-      { model: Airport, as: "originAirport" },
-      { model: Airport, as: "destinationAirport" },
-      { model: Aircraft, as: "aircraft" },
-    ],
-    order: [["DepartureTime", "ASC"]],
-  })
-    .then((flights) => {
-      const response: ApiResponse<typeof flights> = {
+  // Extract pagination parameters
+  const page = Number(req.query.page) || 1;
+  const pageSize = Number(req.query.pageSize) || 10;
+  const offset = (page - 1) * pageSize;
+
+  // Get flights with pagination
+  Promise.all([
+    Flight.findAll({
+      include: [
+        { model: Airport, as: "originAirport" },
+        { model: Airport, as: "destinationAirport" },
+        { model: Aircraft, as: "aircraft" },
+      ],
+      order: [["DepartureTime", "ASC"]],
+      offset,
+      limit: pageSize,
+    }),
+    Flight.count(), // Get total count for pagination metadata
+  ])
+    .then(([flights, totalCount]) => {
+      const response: ApiResponse<{
+        flights: typeof flights;
+        totalCount: number;
+        page: number;
+        pageSize: number;
+        totalPages: number;
+      }> = {
         message: "Flights retrieved successfully",
-        data: flights,
+        data: {
+          flights,
+          totalCount,
+          page,
+          pageSize,
+          totalPages: Math.ceil(totalCount / pageSize),
+        },
       };
       res.json(response);
     })
@@ -325,6 +350,283 @@ export function getAvailableSeats(
       const response: ApiResponse<null> = {
         message: "Error fetching seats",
         error: error instanceof Error ? error.message : "Unknown error",
+      };
+      res.status(500).json(response);
+    });
+}
+
+/**
+ * Get all flights - Admin version with all details
+ */
+export function getAllFlights(req: Request, res: Response): void {
+  Flight.findAll({
+    include: [
+      { model: Airport, as: "originAirport" },
+      { model: Airport, as: "destinationAirport" },
+      { model: Aircraft, as: "aircraft" },
+    ],
+    order: [["DepartureTime", "ASC"]],
+  })
+    .then((flights) => {
+      const response: ApiResponse<typeof flights> = {
+        message: "All flights retrieved successfully",
+        data: flights,
+      };
+      res.json(response);
+    })
+    .catch((error: unknown) => {
+      console.error("Error fetching all flights:", error);
+      const response: ApiResponse<null> = {
+        message: "Error fetching flights",
+        error: error instanceof Error ? error.message : String(error),
+      };
+      res.status(500).json(response);
+    });
+}
+
+/**
+ * Create a new flight
+ */
+export function createFlight(req: Request, res: Response): void {
+  const {
+    OriginAirportID,
+    DestinationAirportID,
+    AircraftID,
+    DepartureTime,
+    ArrivalTime,
+  } = req.body as CreateFlightBody;
+
+  // Validate required fields
+  if (!OriginAirportID || !DestinationAirportID || !AircraftID) {
+    const response: ApiResponse<null> = {
+      message: "Missing required fields",
+      error: "All flight fields are required",
+    };
+    res.status(400).json(response);
+    return;
+  }
+
+  // Create the flight
+  Flight.create({
+    OriginAirportID,
+    DestinationAirportID,
+    AircraftID,
+    DepartureTime,
+    ArrivalTime,
+  })
+    .then((flight) => {
+      // Generate seats for this flight based on aircraft capacity
+      return Aircraft.findByPk(AircraftID).then((aircraft) => {
+        if (!aircraft) {
+          throw new Error("Aircraft not found");
+        }
+
+        const totalSeats = aircraft.TotalSeats;
+        const rows = Math.ceil(totalSeats / 6); // Assuming 6 seats per row (A-F)
+        const letters = "ABCDEF";
+        const seatData = [];
+
+        for (let row = 1; row <= rows; row++) {
+          for (let i = 0; i < Math.min(6, totalSeats - (row - 1) * 6); i++) {
+            const seatLetter = letters.charAt(i);
+            const seatNumber = `${row.toString()}${seatLetter}`;
+
+            seatData.push({
+              FlightID: flight.FlightID,
+              SeatNumber: seatNumber,
+              IsBooked: false,
+            });
+          }
+        }
+
+        return Seat.bulkCreate(seatData).then(() => flight);
+      });
+    })
+    .then((flight) => {
+      // Fetch the flight with associated data
+      return Flight.findByPk(flight.FlightID, {
+        include: [
+          { model: Airport, as: "originAirport" },
+          { model: Airport, as: "destinationAirport" },
+          { model: Aircraft, as: "aircraft" },
+        ],
+      });
+    })
+    .then((flightWithData) => {
+      const response: ApiResponse<typeof flightWithData> = {
+        message: "Flight created successfully",
+        data: flightWithData,
+      };
+      res.status(201).json(response);
+    })
+    .catch((error: unknown) => {
+      console.error("Error creating flight:", error);
+      const response: ApiResponse<null> = {
+        message: "Error creating flight",
+        error: error instanceof Error ? error.message : String(error),
+      };
+      res.status(500).json(response);
+    });
+}
+
+/**
+ * Update an existing flight
+ */
+export function updateFlight(req: Request, res: Response): void {
+  const flightId = parseInt(req.params.id);
+  if (isNaN(flightId)) {
+    const response: ApiResponse<null> = {
+      message: "Invalid flight ID",
+      error: "The provided flight ID is not a valid number",
+    };
+    res.status(400).json(response);
+    return;
+  }
+
+  const {
+    OriginAirportID,
+    DestinationAirportID,
+    AircraftID,
+    DepartureTime,
+    ArrivalTime,
+  } = req.body as UpdateFlightBody;
+
+  // Validate required fields
+  if (!OriginAirportID || !DestinationAirportID || !AircraftID) {
+    const response: ApiResponse<null> = {
+      message: "Missing required fields",
+      error: "All flight fields are required",
+    };
+    res.status(400).json(response);
+    return;
+  }
+
+  // Check if flight exists
+  Flight.findByPk(flightId)
+    .then((flight) => {
+      if (!flight) {
+        const response: ApiResponse<null> = {
+          message: "Flight not found",
+          error: "The requested flight does not exist",
+        };
+        res.status(404).json(response);
+        return Promise.reject(new Error("Flight not found"));
+      }
+
+      // Update the flight
+      return flight.update({
+        OriginAirportID,
+        DestinationAirportID,
+        AircraftID,
+        DepartureTime,
+        ArrivalTime,
+      });
+    })
+    .then(() => {
+      // Fetch the updated flight with associated data
+      return Flight.findByPk(flightId, {
+        include: [
+          { model: Airport, as: "originAirport" },
+          { model: Airport, as: "destinationAirport" },
+          { model: Aircraft, as: "aircraft" },
+        ],
+      });
+    })
+    .then((updatedFlight) => {
+      const response: ApiResponse<typeof updatedFlight> = {
+        message: "Flight updated successfully",
+        data: updatedFlight,
+      };
+      res.json(response);
+    })
+    .catch((error: unknown) => {
+      if (!res.headersSent) {
+        console.error(`Error updating flight ${flightId.toString()}:`, error);
+        const response: ApiResponse<null> = {
+          message: "Error updating flight",
+          error: error instanceof Error ? error.message : String(error),
+        };
+        res.status(500).json(response);
+      }
+    });
+}
+
+/**
+ * Delete a flight
+ */
+export function deleteFlight(req: Request, res: Response): void {
+  const flightId = parseInt(req.params.id);
+  if (isNaN(flightId)) {
+    const response: ApiResponse<null> = {
+      message: "Invalid flight ID",
+      error: "The provided flight ID is not a valid number",
+    };
+    res.status(400).json(response);
+    return;
+  }
+
+  // Check if flight has any reservations
+  Reservation.findOne({ where: { FlightID: flightId } })
+    .then((reservation) => {
+      if (reservation) {
+        const response: ApiResponse<null> = {
+          message: "Cannot delete flight with reservations",
+          error: "This flight has active reservations and cannot be deleted",
+        };
+        res.status(400).json(response);
+        return Promise.reject(new Error("Flight has reservations"));
+      }
+
+      // Delete associated seats first
+      return Seat.destroy({ where: { FlightID: flightId } }).then(() => {
+        // Then delete the flight
+        return Flight.destroy({ where: { FlightID: flightId } });
+      });
+    })
+    .then((deletedCount) => {
+      if (deletedCount === 0) {
+        const response: ApiResponse<null> = {
+          message: "Flight not found",
+          error: "The requested flight does not exist",
+        };
+        res.status(404).json(response);
+        return;
+      }
+
+      const response: ApiResponse<null> = {
+        message: "Flight deleted successfully",
+      };
+      res.json(response);
+    })
+    .catch((error: unknown) => {
+      if (!res.headersSent) {
+        console.error(`Error deleting flight ${flightId.toString()}:`, error);
+        const response: ApiResponse<null> = {
+          message: "Error deleting flight",
+          error: error instanceof Error ? error.message : String(error),
+        };
+        res.status(500).json(response);
+      }
+    });
+}
+
+/**
+ * Get all aircraft
+ */
+export function getAllAircraft(req: Request, res: Response): void {
+  Aircraft.findAll()
+    .then((aircraft) => {
+      const response: ApiResponse<typeof aircraft> = {
+        message: "Aircraft retrieved successfully",
+        data: aircraft,
+      };
+      res.json(response);
+    })
+    .catch((error: unknown) => {
+      console.error("Error fetching aircraft:", error);
+      const response: ApiResponse<null> = {
+        message: "Error fetching aircraft",
+        error: error instanceof Error ? error.message : String(error),
       };
       res.status(500).json(response);
     });

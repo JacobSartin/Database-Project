@@ -14,6 +14,7 @@ import {
 import AirplanemodeActiveIcon from "@mui/icons-material/AirplanemodeActive";
 import ConfirmationNumberIcon from "@mui/icons-material/ConfirmationNumber";
 import HomeIcon from "@mui/icons-material/Home";
+import SettingsIcon from "@mui/icons-material/Settings";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import AuthModal from "./AuthModal";
@@ -23,7 +24,7 @@ interface TopBarProps {
 }
 
 const TopBar: React.FC<TopBarProps> = ({ title = "SkyBooker Airlines" }) => {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout, isAdmin } = useAuth();
   const location = useLocation();
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
@@ -108,6 +109,14 @@ const TopBar: React.FC<TopBarProps> = ({ title = "SkyBooker Airlines" }) => {
               <ConfirmationNumberIcon sx={{ mr: 0.5 }} fontSize="small" />
               My Bookings
             </Box>
+
+            {/* Admin Links - only shown to admin users */}
+            {isAdmin && (
+              <Box component={Link} to="/admin" sx={getNavLinkStyle("/admin")}>
+                <SettingsIcon sx={{ mr: 0.5 }} fontSize="small" />
+                Admin Dashboard
+              </Box>
+            )}
           </Stack>
 
           {isAuthenticated ? (

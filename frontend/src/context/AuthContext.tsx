@@ -5,7 +5,7 @@ import React, {
   useEffect,
   ReactNode,
 } from "react";
-import { User } from "../types/shared";
+import { UserAttributes } from "../../../backend/src/types/modelDTOs";
 import {
   login as apiLogin,
   register as apiRegister,
@@ -14,17 +14,18 @@ import {
 } from "../services/api";
 
 interface AuthContextType {
-  user: User | null;
+  user: UserAttributes | null;
   isAuthenticated: boolean;
+  isAdmin: boolean;
   loading: boolean;
-  login: (username: string, password: string) => Promise<User>;
+  login: (username: string, password: string) => Promise<UserAttributes>;
   register: (
     username: string,
     email: string,
     password: string,
     firstName: string,
     lastName: string
-  ) => Promise<User>;
+  ) => Promise<UserAttributes>;
   logout: () => Promise<void>;
 }
 
@@ -35,7 +36,7 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<UserAttributes | null>(null);
   const [loading, setLoading] = useState(true); // Start with loading to check for session
 
   // Check for existing session token on component mount
@@ -43,15 +44,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const checkAuthStatus = async () => {
       try {
         const response = await getCurrentUser();
-        if (response.data) {
+        if (response) {
           // Transform the user data to ensure correct property casing
-          const userData: User = {
-            UserID: response.data.UserID,
-            Username: response.data.Username,
-            Email: response.data.Email,
-            FirstName: response.data.FirstName,
-            LastName: response.data.LastName,
-            isAdmin: response.data.isAdmin,
+          const userData: UserAttributes = {
+            UserID: response.UserID,
+            Username: response.Username,
+            Email: response.Email,
+            FirstName: response.FirstName,
+            LastName: response.LastName,
+            Admin: response.isAdmin!,
+            PasswordHash: "",
           };
           setUser(userData);
         }
@@ -68,18 +70,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   // Login function - updated to use username
-  const login = async (username: string, password: string): Promise<User> => {
+  const login = async (
+    username: string,
+    password: string
+  ): Promise<UserAttributes> => {
     setLoading(true);
     try {
       const response = await apiLogin({ username, password });
       // Transform the user data to ensure correct property casing
-      const userData: User = {
-        UserID: response.data!.UserID,
-        Username: response.data!.Username,
-        Email: response.data!.Email,
-        FirstName: response.data!.FirstName,
-        LastName: response.data!.LastName,
-        isAdmin: response.data!.isAdmin,
+      const userData: UserAttributes = {
+        UserID: response.UserID,
+        Username: response.Username,
+        Email: response.Email,
+        FirstName: response.FirstName,
+        LastName: response.LastName,
+        Admin: response.isAdmin!,
+        PasswordHash: "",
       };
       setUser(userData);
       return userData;
@@ -98,7 +104,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     password: string,
     firstName: string,
     lastName: string
-  ): Promise<User> => {
+  ): Promise<UserAttributes> => {
     setLoading(true);
     try {
       const response = await apiRegister({
@@ -109,13 +115,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         lastName,
       });
       // Transform the user data to ensure correct property casing
-      const userData: User = {
-        UserID: response.data!.UserID,
-        Username: response.data!.Username,
-        Email: response.data!.Email,
-        FirstName: response.data!.FirstName,
-        LastName: response.data!.LastName,
-        isAdmin: response.data!.isAdmin,
+      const userData: UserAttributes = {
+        UserID: response.UserID,
+        Username: response.Username,
+        Email: response.Email,
+        FirstName: response.FirstName,
+        LastName: response.LastName,
+        Admin: response.isAdmin!,
+        PasswordHash: "",
       };
       setUser(userData);
       return userData;
@@ -146,6 +153,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const value = {
     user,
     isAuthenticated: !!user,
+    isAdmin: !!user?.Admin,
     loading,
     login,
     register,

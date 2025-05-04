@@ -6,6 +6,7 @@ import flightRoutes from "./routes/flightRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import airportRoutes from "./routes/airportRoutes.js";
 import reservationRoutes from "./routes/reservationRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
 import { testConnection } from "./db/connection.js";
 import { initializeDatabase } from "./db/initModels.js";
 
@@ -45,6 +46,7 @@ app.use("/api/flights", flightRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/airports", airportRoutes);
 app.use("/api/reservations", reservationRoutes);
+app.use("/api/admin", adminRoutes);
 
 // Health check endpoint
 app.get("/health", (_req, res) => {

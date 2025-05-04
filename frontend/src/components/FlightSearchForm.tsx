@@ -21,13 +21,13 @@ import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { AirportOption } from "../types/flightTypes";
-import api from "../services/api";
 import Fuse from "fuse.js";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import FlightTakeoffIcon from "@mui/icons-material/FlightTakeoff";
 import FlightLandIcon from "@mui/icons-material/FlightLand";
 import PersonIcon from "@mui/icons-material/Person";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import { fetchAirports } from "../services/api";
 
 // Configure Fuse.js with more effective fuzzy search settings
 const fuseOptions = {
@@ -98,7 +98,7 @@ const FlightSearchForm: React.FC<FlightSearchFormProps> = ({
       setLoading(true);
       setError(null);
       try {
-        const airports = await api.fetchAirports();
+        const airports = await fetchAirports();
         setAirportOptions(airports);
       } catch (err) {
         console.error("Error fetching airports:", err);
