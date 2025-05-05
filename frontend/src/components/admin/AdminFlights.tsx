@@ -23,11 +23,8 @@ import {
 } from "@mui/material";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import {
-  getPaginatedFlights,
-  deleteFlight,
-  ConvertedFlight,
-} from "../../services/api";
+import { ConvertedFlight } from "../../services/api";
+import { getAdminFlights, deleteFlight } from "../../services/adminApi";
 
 const AdminFlights: React.FC = () => {
   // State for flights and pagination
@@ -51,20 +48,21 @@ const AdminFlights: React.FC = () => {
       return;
     }
 
-    // Fetch flights data with pagination
+    // Fetch flights data
     const fetchFlights = async () => {
       setLoading(true);
       try {
-        const data = await getPaginatedFlights({ page, pageSize });
+        const response = await getAdminFlights({
+          page,
+          pageSize,
+        });
 
-        setFlights(data.flights);
-        setTotalFlights(data.totalCount);
-        setTotalPages(data.totalPages);
+        setFlights(response.flights);
+        setTotalFlights(response.totalCount);
+        setTotalPages(response.totalPages);
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));
-        console.error("Error fetching flights:", err);
-
-        // Set empty flights array if API fails
+        console.error("Error fetching flight data:", err);
         setFlights([]);
       } finally {
         setLoading(false);
@@ -235,7 +233,9 @@ const AdminFlights: React.FC = () => {
             }}
           >
             <Typography variant="body2" color="text.secondary">
-              Showing {flights.length} of {totalFlights} flights
+              Showing {(page - 1) * pageSize + 1}-
+              {Math.min(page * pageSize, totalFlights)} of {totalFlights}{" "}
+              flights
             </Typography>
 
             <Stack direction="row" spacing={2} alignItems="center">

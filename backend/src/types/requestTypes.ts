@@ -11,6 +11,14 @@ export interface ReservationIdParams {
   id: string;
 }
 
+export interface AirportIdParams {
+  id: string;
+}
+
+export interface AircraftIdParams {
+  id: string;
+}
+
 // Request body interfaces
 export interface RegisterRequestBody {
   username: string;
@@ -28,6 +36,7 @@ export interface LoginRequestBody {
 export interface CreateReservationBody {
   FlightID: number;
   SeatID: number;
+  UserID: number;
 }
 
 export interface CreateFlightBody {
@@ -38,17 +47,21 @@ export interface CreateFlightBody {
   ArrivalTime: Date;
 }
 
-export interface UpstringFlightBody {
+export interface UpdateFlightBody {
   OriginAirportID: number;
   DestinationAirportID: number;
   AircraftID: number;
-  DepartureTime: string;
-  ArrivalTime: string;
+  DepartureTime: Date;
+  ArrivalTime: Date;
 }
 
 export interface CreateAircraftBody {
   Model: string;
-  Manufacturer: string;
+  TotalSeats: number;
+}
+
+export interface UpdateAircraftBody {
+  Model: string;
   TotalSeats: number;
 }
 
@@ -59,12 +72,72 @@ export interface CreateAirportBody {
   Country: string;
 }
 
+export interface UpdateAirportBody {
+  Code: string;
+  Name: string;
+  City: string;
+  Country: string;
+}
+
+export interface UpdateUserBody {
+  FirstName: string;
+  LastName: string;
+  Email: string;
+  IsAdmin: boolean;
+  IsActive: boolean;
+}
+
+export interface CreateUserBody {
+  Username: string;
+  FirstName: string;
+  LastName: string;
+  Email: string;
+  Password: string;
+  IsAdmin: boolean;
+}
+
+export interface ResetPasswordBody {
+  newPassword: string;
+}
+
+export interface UpdateReservationBody {
+  UserID?: number;
+  FlightID?: number;
+  SeatID?: number;
+}
+
 // Request query interfaces
 export interface SearchFlightQuery {
-  origin?: string;
-  destination?: string;
-  departureDate?: Date;
+  origin: string;
+  destination: string;
+  departureDate: Date;
   returnDate?: Date;
+}
+
+export interface UserQueryParams {
+  page?: string;
+  pageSize?: string;
+  search?: string;
+  role?: string;
+}
+
+export interface FlightQueryParams {
+  page?: string;
+  pageSize?: string;
+}
+
+export interface AircraftQueryParams {
+  page?: string;
+  pageSize?: string;
+  search?: string;
+}
+
+export interface ReservationQueryParams {
+  page?: string;
+  pageSize?: string;
+  search?: string;
+  fromDate?: string;
+  toDate?: string;
 }
 
 // Response interfaces
@@ -75,6 +148,8 @@ export interface UserResponse {
   FirstName: string;
   LastName: string;
   isAdmin?: boolean;
+  Password?: string;
+  ReservationCount?: number;
 }
 
 export interface AirportResponse {
@@ -88,7 +163,6 @@ export interface AirportResponse {
 export interface AircraftResponse {
   AircraftID: number;
   Model: string;
-  Manufacturer: string;
   TotalSeats: number;
 }
 
@@ -121,6 +195,7 @@ export interface ReservationResponse {
   BookingTime: string;
   flight?: FlightResponse;
   seat?: SeatResponse;
+  user?: UserResponse;
 }
 
 export interface SearchFlightResponse {
@@ -144,12 +219,4 @@ export interface ApiResponse<T> {
   message: string;
   data?: T;
   error?: string;
-}
-
-export interface UpdateFlightBody {
-  OriginAirportID: number;
-  DestinationAirportID: number;
-  AircraftID: number;
-  DepartureTime: Date;
-  ArrivalTime: Date;
 }

@@ -4,11 +4,9 @@ import {
   UserResponse,
   FlightResponse,
   AirportResponse,
-  AircraftResponse,
   SeatResponse,
   ReservationResponse,
   SearchFlightResponse,
-  DashboardStatsResponse,
   RegisterRequestBody,
   LoginRequestBody,
   CreateReservationBody,
@@ -306,101 +304,5 @@ export function deleteReservation(reservationId: number): Promise<void> {
   return apiClient
     .delete<ApiResponse<null>>(`/reservations/${reservationId}`)
     .then(() => undefined)
-    .catch(handleApiError);
-}
-
-/* Admin API Functions */
-
-/**
- * Get dashboard statistics
- */
-export function getDashboardStats(): Promise<DashboardStatsResponse> {
-  return apiClient
-    .get<ApiResponse<DashboardStatsResponse>>("/admin/dashboard")
-    .then((response) => response.data.data!)
-    .catch(handleApiError);
-}
-
-/**
- * Create a new flight
- */
-export function createFlight(flightData: {
-  OriginAirportID: number;
-  DestinationAirportID: number;
-  AircraftID: number;
-  DepartureTime: Date;
-  ArrivalTime: Date;
-}): Promise<
-  Omit<FlightResponse, "DepartureTime" | "ArrivalTime"> & {
-    DepartureTime: Date;
-    ArrivalTime: Date;
-  }
-> {
-  return apiClient
-    .post<ApiResponse<FlightResponse>>("/admin/flights", {
-      flightData,
-    })
-    .then((response) => convertFlightDates(response.data.data!))
-    .catch(handleApiError);
-}
-
-/**
- * Update an existing flight
- */
-export function updateFlight(
-  flightId: number,
-  flightData: {
-    OriginAirportID: number;
-    DestinationAirportID: number;
-    AircraftID: number;
-    DepartureTime: Date;
-    ArrivalTime: Date;
-  }
-): Promise<
-  Omit<FlightResponse, "DepartureTime" | "ArrivalTime"> & {
-    DepartureTime: Date;
-    ArrivalTime: Date;
-  }
-> {
-  return apiClient
-    .put<ApiResponse<FlightResponse>>(`/admin/flights/${flightId}`, {
-      flightData,
-    })
-    .then((response) => convertFlightDates(response.data.data!))
-    .catch(handleApiError);
-}
-
-/**
- * Delete a flight
- */
-export function deleteFlight(flightId: number): Promise<void> {
-  return apiClient
-    .delete<ApiResponse<null>>(`/admin/flights/${flightId}`)
-    .then(() => undefined)
-    .catch(handleApiError);
-}
-
-/**
- * Get all flights (admin)
- */
-export function getAllFlights(): Promise<
-  (Omit<FlightResponse, "DepartureTime" | "ArrivalTime"> & {
-    DepartureTime: Date;
-    ArrivalTime: Date;
-  })[]
-> {
-  return apiClient
-    .get<ApiResponse<FlightResponse[]>>("/admin/flights")
-    .then((response) => (response.data.data || []).map(convertFlightDates))
-    .catch(handleApiError);
-}
-
-/**
- * Get all aircraft
- */
-export function getAllAircraft(): Promise<AircraftResponse[]> {
-  return apiClient
-    .get<ApiResponse<AircraftResponse[]>>("/admin/aircraft")
-    .then((response) => response.data.data || [])
     .catch(handleApiError);
 }

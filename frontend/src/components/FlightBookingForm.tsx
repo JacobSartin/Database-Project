@@ -254,6 +254,7 @@ const FlightBookingForm: React.FC = () => {
         apiCreateReservation({
           FlightID: selectedFlight.FlightID!,
           SeatID: seat.SeatID!,
+          UserID: user.UserID,
         })
       );
 

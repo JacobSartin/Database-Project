@@ -31,7 +31,6 @@ export const authenticateToken = (
 
   // Extract token with proper typing
   const tokenFromHeader = authHeader ? authHeader.split(" ")[1] : undefined;
-  // Cast cookies.token directly since Express types are causing issues
   const tokenFromCookie = req.cookies.token as string | undefined;
 
   const token: string | undefined = tokenFromHeader ?? tokenFromCookie;

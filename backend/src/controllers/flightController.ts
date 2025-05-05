@@ -11,13 +11,17 @@ import {
   ApiResponse,
   CreateFlightBody,
   UpdateFlightBody,
+  FlightQueryParams,
 } from "../types/requestTypes.js";
 
 /**
  * Get all flights
  * @returns List of all flights with related data
  */
-export function getFlights(req: Request, res: Response): void {
+export function getFlights(
+  req: Request<unknown, unknown, unknown, FlightQueryParams>,
+  res: Response
+): void {
   // Extract pagination parameters
   const page = Number(req.query.page) || 1;
   const pageSize = Number(req.query.pageSize) || 10;
@@ -129,11 +133,13 @@ export function getFlightById(
  * @param req Request with search parameters
  * @param res Response object
  */
-export function searchFlights(req: Request, res: Response): void {
-  const { origin, destination, departureDate, returnDate } =
-    req.query as SearchFlightQuery;
+export function searchFlights(
+  req: Request<unknown, unknown, unknown, SearchFlightQuery>,
+  res: Response
+): void {
+  const { origin, destination, departureDate, returnDate } = req.query;
 
-  if (!origin || !destination || !departureDate) {
+  if (!origin || !destination) {
     const response: ApiResponse<null> = {
       message: "Missing required search parameters",
       error: "Origin, destination, and departure date are required",
@@ -387,14 +393,17 @@ export function getAllFlights(req: Request, res: Response): void {
 /**
  * Create a new flight
  */
-export function createFlight(req: Request, res: Response): void {
+export function createFlight(
+  req: Request<unknown, unknown, CreateFlightBody>,
+  res: Response
+): void {
   const {
     OriginAirportID,
     DestinationAirportID,
     AircraftID,
     DepartureTime,
     ArrivalTime,
-  } = req.body as CreateFlightBody;
+  } = req.body;
 
   // Validate required fields
   if (!OriginAirportID || !DestinationAirportID || !AircraftID) {
@@ -472,7 +481,10 @@ export function createFlight(req: Request, res: Response): void {
 /**
  * Update an existing flight
  */
-export function updateFlight(req: Request, res: Response): void {
+export function updateFlight(
+  req: Request<FlightIdParams, unknown, UpdateFlightBody>,
+  res: Response
+): void {
   const flightId = parseInt(req.params.id);
   if (isNaN(flightId)) {
     const response: ApiResponse<null> = {
@@ -489,7 +501,7 @@ export function updateFlight(req: Request, res: Response): void {
     AircraftID,
     DepartureTime,
     ArrivalTime,
-  } = req.body as UpdateFlightBody;
+  } = req.body;
 
   // Validate required fields
   if (!OriginAirportID || !DestinationAirportID || !AircraftID) {
@@ -554,7 +566,10 @@ export function updateFlight(req: Request, res: Response): void {
 /**
  * Delete a flight
  */
-export function deleteFlight(req: Request, res: Response): void {
+export function deleteFlight(
+  req: Request<FlightIdParams>,
+  res: Response
+): void {
   const flightId = parseInt(req.params.id);
   if (isNaN(flightId)) {
     const response: ApiResponse<null> = {

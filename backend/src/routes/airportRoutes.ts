@@ -1,6 +1,6 @@
 import express from "express";
 import {
-  getAllAirports,
+  getAirports,
   getAirportById,
 } from "../controllers/airportController.js";
 
@@ -11,7 +11,7 @@ const router = express.Router();
  * @desc    Get all airports
  * @access  Public
  */
-router.get("/", getAllAirports);
+router.get("/", getAirports);
 
 /**
  * @route   GET /api/airports/:id

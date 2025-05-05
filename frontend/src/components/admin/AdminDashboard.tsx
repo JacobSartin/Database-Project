@@ -4,20 +4,18 @@ import {
   Container,
   Box,
   Paper,
-  Card,
-  CardContent,
-  CardActions,
-  Button,
-  Divider,
   CircularProgress,
   Alert,
+  Grid,
 } from "@mui/material";
 import FlightIcon from "@mui/icons-material/Flight";
 import AirlinesIcon from "@mui/icons-material/Airlines";
 import AirplanemodeActiveIcon from "@mui/icons-material/AirplanemodeActive";
 import PeopleIcon from "@mui/icons-material/People";
+import LocationOnIcon from "@mui/icons-material/LocationOn";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { getDashboardStats, getAirports } from "../../services/adminApi";
 
 interface DashboardStat {
   title: string;
@@ -31,6 +29,7 @@ const AdminDashboard: React.FC = () => {
   const { isAdmin } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [totalAirports, setTotalAirports] = useState(0);
   const [stats, setStats] = useState<{
     totalFlights: number;
     totalUsers: number;
@@ -54,21 +53,12 @@ const AdminDashboard: React.FC = () => {
     const fetchStats = async () => {
       setLoading(true);
       try {
-        const response = await fetch(
-          "http://localhost:5000/api/admin/dashboard",
-          {
-            credentials: "include",
-          }
-        );
+        const data = await getDashboardStats();
+        setStats(data);
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        if (data.data) {
-          setStats(data.data);
-        }
+        // Fetch airports to get total count
+        const airports = await getAirports();
+        setTotalAirports(airports.length);
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));
         console.error("Error fetching dashboard data:", err);
@@ -80,6 +70,7 @@ const AdminDashboard: React.FC = () => {
           totalAircraft: 12,
           totalReservations: 234,
         });
+        setTotalAirports(30); // Fallback airport count
       } finally {
         setLoading(false);
       }
@@ -106,6 +97,12 @@ const AdminDashboard: React.FC = () => {
       value: stats.totalAircraft,
       icon: <AirlinesIcon fontSize="large" color="primary" />,
       link: "/admin/aircraft",
+    },
+    {
+      title: "Airports",
+      value: totalAirports,
+      icon: <LocationOnIcon fontSize="large" color="primary" />,
+      link: "/admin/airports",
     },
     {
       title: "Reservations",
@@ -143,7 +140,7 @@ const AdminDashboard: React.FC = () => {
         </Typography>
         <Typography variant="subtitle1" color="text.secondary">
           Welcome to the admin dashboard. Here you can manage flights, users,
-          and more.
+          aircraft, and reservations.
         </Typography>
       </Box>
 
@@ -154,25 +151,11 @@ const AdminDashboard: React.FC = () => {
       )}
 
       {/* Dashboard stats */}
-      <Box
-        sx={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: 3,
-          mb: 4,
-        }}
-      >
+      <Grid container spacing={3}>
         {dashboardStats.map((stat, index) => (
-          <Box
+          <Grid
             key={index}
-            sx={{
-              flex: "1 1 calc(25% - 18px)",
-              minWidth: {
-                xs: "100%",
-                sm: "calc(50% - 12px)",
-                md: "calc(25% - 18px)",
-              },
-            }}
+            sx={{ width: { xs: "100%", sm: "50%", md: "25%" } }}
           >
             <Paper
               elevation={2}
@@ -182,11 +165,13 @@ const AdminDashboard: React.FC = () => {
                 display: "flex",
                 flexDirection: "column",
                 transition: "transform 0.2s, box-shadow 0.2s",
+                cursor: "pointer",
                 "&:hover": {
                   transform: "translateY(-4px)",
                   boxShadow: 4,
                 },
               }}
+              onClick={() => stat.link && handleNavigation(stat.link)}
             >
               <Box
                 sx={{
@@ -208,138 +193,13 @@ const AdminDashboard: React.FC = () => {
               >
                 {stat.value}
               </Typography>
-              {stat.link && (
-                <Box sx={{ mt: "auto" }}>
-                  <Button
-                    variant="text"
-                    color="primary"
-                    onClick={() => handleNavigation(stat.link!)}
-                  >
-                    View Details
-                  </Button>
-                </Box>
-              )}
+              <Typography variant="body2" color="text.secondary">
+                Click to manage {stat.title.toLowerCase()}
+              </Typography>
             </Paper>
-          </Box>
+          </Grid>
         ))}
-      </Box>
-
-      {/* Quick actions */}
-      <Typography variant="h5" sx={{ mb: 3, fontWeight: "bold" }}>
-        Quick Actions
-      </Typography>
-      <Box
-        sx={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: 3,
-        }}
-      >
-        <Box
-          sx={{
-            flex: "1 1 calc(33.33% - 16px)",
-            minWidth: {
-              xs: "100%",
-              md: "calc(33.33% - 16px)",
-            },
-          }}
-        >
-          <Card
-            sx={{ height: "100%", display: "flex", flexDirection: "column" }}
-          >
-            <CardContent sx={{ flexGrow: 1 }}>
-              <Typography variant="h6" component="div" gutterBottom>
-                Flight Management
-              </Typography>
-              <Divider sx={{ my: 1 }} />
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Add, edit, or delete flights. Manage seat availability and
-                pricing.
-              </Typography>
-            </CardContent>
-            <CardActions>
-              <Button
-                size="small"
-                onClick={() => handleNavigation("/admin/flights")}
-              >
-                Manage Flights
-              </Button>
-              <Button
-                size="small"
-                onClick={() => handleNavigation("/admin/flights/add")}
-              >
-                Add New Flight
-              </Button>
-            </CardActions>
-          </Card>
-        </Box>
-
-        <Box
-          sx={{
-            flex: "1 1 calc(33.33% - 16px)",
-            minWidth: {
-              xs: "100%",
-              md: "calc(33.33% - 16px)",
-            },
-          }}
-        >
-          <Card
-            sx={{ height: "100%", display: "flex", flexDirection: "column" }}
-          >
-            <CardContent sx={{ flexGrow: 1 }}>
-              <Typography variant="h6" component="div" gutterBottom>
-                User Management
-              </Typography>
-              <Divider sx={{ my: 1 }} />
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                View and manage user accounts, reset passwords, and handle
-                support requests.
-              </Typography>
-            </CardContent>
-            <CardActions>
-              <Button
-                size="small"
-                onClick={() => handleNavigation("/admin/users")}
-              >
-                Manage Users
-              </Button>
-            </CardActions>
-          </Card>
-        </Box>
-
-        <Box
-          sx={{
-            flex: "1 1 calc(33.33% - 16px)",
-            minWidth: {
-              xs: "100%",
-              md: "calc(33.33% - 16px)",
-            },
-          }}
-        >
-          <Card
-            sx={{ height: "100%", display: "flex", flexDirection: "column" }}
-          >
-            <CardContent sx={{ flexGrow: 1 }}>
-              <Typography variant="h6" component="div" gutterBottom>
-                System Settings
-              </Typography>
-              <Divider sx={{ my: 1 }} />
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Configure system settings, manage access controls, and view
-                system logs.
-              </Typography>
-            </CardContent>
-            <CardActions>
-              <Button
-                size="small"
-                onClick={() => handleNavigation("/admin/settings")}
-              >
-                System Settings
-              </Button>
-            </CardActions>
-          </Card>
-        </Box>
-      </Box>
+      </Grid>
     </Container>
   );
 };

@@ -17,6 +17,13 @@ import {
 } from "@mui/material";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { fetchAirports, getFlightById } from "../../services/api";
+import {
+  createFlight,
+  updateFlight,
+  getAdminAircraft,
+} from "../../services/adminApi";
+import { AircraftResponse } from "../../../../backend/src/types/requestTypes";
 
 // Define interfaces for the dropdowns
 interface Airport {
@@ -26,12 +33,6 @@ interface Airport {
   Country: string;
 }
 
-interface Aircraft {
-  AircraftID: number;
-  Model: string;
-  Registration: string;
-}
-
 // Define a custom flight interface for the form
 interface FlightFormData {
   OriginAirportID: number | null;
@@ -39,7 +40,6 @@ interface FlightFormData {
   AircraftID: number | null;
   DepartureTime: string;
   ArrivalTime: string;
-  BasePrice: number;
 }
 
 const FlightForm: React.FC = () => {
@@ -58,12 +58,11 @@ const FlightForm: React.FC = () => {
     AircraftID: null,
     DepartureTime: new Date().toISOString().slice(0, 16),
     ArrivalTime: new Date(Date.now() + 3600000).toISOString().slice(0, 16),
-    BasePrice: 0,
   });
 
   // Options for dropdowns
   const [airports, setAirports] = useState<Airport[]>([]);
-  const [aircraft, setAircraft] = useState<Aircraft[]>([]);
+  const [aircraft, setAircraft] = useState<AircraftResponse[]>([]);
 
   const isEditMode = !!flightId;
 
@@ -78,28 +77,22 @@ const FlightForm: React.FC = () => {
     const fetchOptions = async () => {
       try {
         // Fetch airports
-        const airportsResponse = await fetch(
-          "http://localhost:5000/api/airports",
-          {
-            credentials: "include",
-          }
+        const airportsData = await fetchAirports();
+        setAirports(
+          airportsData.map((option) => ({
+            AirportID: option.airportId,
+            Code: option.value,
+            City: option.label.split(" - ")[0],
+            Country: option.label.split("(")[1]?.replace(")", "") || "",
+          }))
         );
-        if (airportsResponse.ok) {
-          const airportsData = await airportsResponse.json();
-          setAirports(airportsData.data || []);
-        }
 
         // Fetch aircraft
-        const aircraftResponse = await fetch(
-          "http://localhost:5000/api/admin/aircraft",
-          {
-            credentials: "include",
-          }
-        );
-        if (aircraftResponse.ok) {
-          const aircraftData = await aircraftResponse.json();
-          setAircraft(aircraftData.data || []);
-        }
+        const aircraftResponse = await getAdminAircraft({
+          page: 1,
+          pageSize: 100,
+        });
+        setAircraft(aircraftResponse.aircraft);
       } catch (err) {
         console.error("Error fetching options:", err);
         setError("Failed to load form options. Please try again.");
@@ -109,31 +102,19 @@ const FlightForm: React.FC = () => {
     // If in edit mode, fetch the flight details
     const fetchFlight = async () => {
       try {
-        const response = await fetch(
-          `http://localhost:5000/api/flights/${flightId}`,
-          {
-            credentials: "include",
+        if (flightId) {
+          const flight = await getFlightById(parseInt(flightId));
+
+          if (flight) {
+            // Format dates for datetime-local input
+            setFlight({
+              OriginAirportID: flight.OriginAirportID,
+              DestinationAirportID: flight.DestinationAirportID,
+              AircraftID: flight.AircraftID,
+              DepartureTime: flight.DepartureTime.toISOString().slice(0, 16),
+              ArrivalTime: flight.ArrivalTime.toISOString().slice(0, 16),
+            });
           }
-        );
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        if (data.data) {
-          // Format dates for datetime-local input
-          const departureTime = new Date(data.data.DepartureTime);
-          const arrivalTime = new Date(data.data.ArrivalTime);
-
-          setFlight({
-            OriginAirportID: data.data.OriginAirportID,
-            DestinationAirportID: data.data.DestinationAirportID,
-            AircraftID: data.data.AircraftID,
-            DepartureTime: departureTime.toISOString().slice(0, 16),
-            ArrivalTime: arrivalTime.toISOString().slice(0, 16),
-            BasePrice: data.data.BasePrice || 0,
-          });
         }
       } catch (err) {
         console.error("Error fetching flight:", err);
@@ -172,31 +153,22 @@ const FlightForm: React.FC = () => {
     setSuccess(null);
 
     try {
-      const url = isEditMode
-        ? `http://localhost:5000/api/admin/flights/${flightId}`
-        : "http://localhost:5000/api/admin/flights";
-
-      const method = isEditMode ? "PUT" : "POST";
-
       // Prepare payload data for API
       const payload = {
         ...flight,
         // Convert to proper format for backend
         DepartureTime: new Date(flight.DepartureTime),
         ArrivalTime: new Date(flight.ArrivalTime),
+        // Ensure we have the required properties
+        OriginAirportID: flight.OriginAirportID!,
+        DestinationAirportID: flight.DestinationAirportID!,
+        AircraftID: flight.AircraftID!,
       };
 
-      const response = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
+      if (isEditMode && flightId) {
+        await updateFlight(parseInt(flightId), payload);
+      } else {
+        await createFlight(payload);
       }
 
       setSuccess(
@@ -322,7 +294,7 @@ const FlightForm: React.FC = () => {
                 >
                   {aircraft.map((plane) => (
                     <MenuItem key={plane.AircraftID} value={plane.AircraftID}>
-                      {plane.Model} ({plane.Registration})
+                      {plane.Model} - {plane.TotalSeats} seats
                     </MenuItem>
                   ))}
                 </Select>
@@ -333,18 +305,7 @@ const FlightForm: React.FC = () => {
               sx={{
                 width: { xs: "100%", sm: "50%" },
               }}
-            >
-              <TextField
-                fullWidth
-                name="BasePrice"
-                label="Base Price ($)"
-                type="number"
-                value={flight.BasePrice}
-                onChange={handleTextChange}
-                InputProps={{ inputProps: { min: 0, step: 0.01 } }}
-                required
-              />
-            </Grid>
+            ></Grid>
 
             <Grid
               sx={{
