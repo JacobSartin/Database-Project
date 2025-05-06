@@ -5,14 +5,33 @@ import {
   UpdateAirportBody,
   ApiResponse,
 } from "../types/requestTypes.js";
+import { Op } from "sequelize"; // Add this import for search operations
 
 // CRUD operations for airports
 
 /**
- * Get all airports
+ * Get all airports with search functionality
  */
 export function getAirports(req: Request, res: Response): void {
-  Airport.findAll({ order: [["Code", "ASC"]] })
+  // Extract search query from request
+  const searchQuery = req.query.search as string;
+
+  // Build where clause based on search query
+  const whereClause = searchQuery
+    ? {
+        [Op.or]: [
+          { Code: { [Op.like]: `%${searchQuery}%` } },
+          { Name: { [Op.like]: `%${searchQuery}%` } },
+          { City: { [Op.like]: `%${searchQuery}%` } },
+          { Country: { [Op.like]: `%${searchQuery}%` } },
+        ],
+      }
+    : {};
+
+  Airport.findAll({
+    where: whereClause,
+    order: [["Code", "ASC"]],
+  })
     .then((airports) => {
       const response: ApiResponse<typeof airports> = {
         message: "Airports retrieved successfully",
